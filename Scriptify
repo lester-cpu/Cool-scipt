@@ -1,0 +1,406 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "PlaymegamarbleMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0.82, 0, 0.82, 0)
+menu.Position = UDim2.new(0.09, 0, 0.09, 0)
+menu.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+menu.BorderSizePixel = 0
+menu.Parent = gui
+
+local sizeConstraint = Instance.new("UISizeConstraint")
+sizeConstraint.MinSize = Vector2.new(280, 400)
+sizeConstraint.MaxSize = Vector2.new(450, 620)
+sizeConstraint.Parent = menu
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 15)
+corner.Parent = menu
+
+--------------------------------------------------
+-- TITLE
+--------------------------------------------------
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 60)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "MAIN MENU"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = menu
+
+--------------------------------------------------
+-- FLY
+--------------------------------------------------
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0.75, 0, 0, 50)
+flyButton.Position = UDim2.new(0.125, 0, 0, 75)
+flyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+flyButton.Text = "FLY: OFF"
+flyButton.TextColor3 = Color3.new(1, 1, 1)
+flyButton.TextScaled = true
+flyButton.Font = Enum.Font.GothamBold
+flyButton.Parent = menu
+
+local flyCorner = Instance.new("UICorner")
+flyCorner.CornerRadius = UDim.new(0, 10)
+flyCorner.Parent = flyButton
+
+--------------------------------------------------
+-- WALKSPEED
+--------------------------------------------------
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0.42, 0, 0, 40)
+speedLabel.Position = UDim2.new(0.08, 0, 0, 145)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "WalkSpeed:"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.TextScaled = true
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Parent = menu
+
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.new(0.32, 0, 0, 40)
+speedBox.Position = UDim2.new(0.55, 0, 0, 145)
+speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedBox.Text = "16"
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.TextScaled = true
+speedBox.Font = Enum.Font.Gotham
+speedBox.ClearTextOnFocus = false
+speedBox.Parent = menu
+
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(0.75, 0, 0, 45)
+speedButton.Position = UDim2.new(0.125, 0, 0, 195)
+speedButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedButton.Text = "SET SPEED"
+speedButton.TextColor3 = Color3.new(1, 1, 1)
+speedButton.TextScaled = true
+speedButton.Font = Enum.Font.GothamBold
+speedButton.Parent = menu
+
+--------------------------------------------------
+-- JUMPPOWER
+--------------------------------------------------
+
+local jumpLabel = Instance.new("TextLabel")
+jumpLabel.Size = UDim2.new(0.42, 0, 0, 40)
+jumpLabel.Position = UDim2.new(0.08, 0, 0, 250)
+jumpLabel.BackgroundTransparency = 1
+jumpLabel.Text = "JumpPower:"
+jumpLabel.TextColor3 = Color3.new(1, 1, 1)
+jumpLabel.TextScaled = true
+jumpLabel.Font = Enum.Font.Gotham
+jumpLabel.Parent = menu
+
+local jumpBox = Instance.new("TextBox")
+jumpBox.Size = UDim2.new(0.32, 0, 0, 40)
+jumpBox.Position = UDim2.new(0.55, 0, 0, 250)
+jumpBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+jumpBox.Text = "50"
+jumpBox.TextColor3 = Color3.new(1, 1, 1)
+jumpBox.TextScaled = true
+jumpBox.Font = Enum.Font.Gotham
+jumpBox.ClearTextOnFocus = false
+jumpBox.Parent = menu
+
+local jumpButton = Instance.new("TextButton")
+jumpButton.Size = UDim2.new(0.75, 0, 0, 45)
+jumpButton.Position = UDim2.new(0.125, 0, 0, 300)
+jumpButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+jumpButton.Text = "SET JUMP"
+jumpButton.TextColor3 = Color3.new(1, 1, 1)
+jumpButton.TextScaled = true
+jumpButton.Font = Enum.Font.GothamBold
+jumpButton.Parent = menu
+
+--------------------------------------------------
+-- ESP
+--------------------------------------------------
+
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(0.75, 0, 0, 50)
+espButton.Position = UDim2.new(0.125, 0, 0, 355)
+espButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+espButton.Text = "ESP: OFF"
+espButton.TextColor3 = Color3.new(1, 1, 1)
+espButton.TextScaled = true
+espButton.Font = Enum.Font.GothamBold
+espButton.Parent = menu
+
+local espCorner = Instance.new("UICorner")
+espCorner.CornerRadius = UDim.new(0, 10)
+espCorner.Parent = espButton
+
+local espEnabled = false
+local highlights = {}
+
+local function addESP(target)
+
+	if target == player then
+		return
+	end
+
+	local character = target.Character
+
+	if not character then
+		return
+	end
+
+	if highlights[target] then
+		return
+	end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "PlayerESP"
+	highlight.FillColor = Color3.fromRGB(255, 0, 0)
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Adornee = character
+	highlight.Parent = character
+
+	highlights[target] = highlight
+end
+
+local function removeESP(target)
+
+	if highlights[target] then
+		highlights[target]:Destroy()
+		highlights[target] = nil
+	end
+
+end
+
+local function enableESP()
+
+	espEnabled = true
+	espButton.Text = "ESP: ON"
+
+	for _, target in ipairs(Players:GetPlayers()) do
+		addESP(target)
+	end
+
+end
+
+local function disableESP()
+
+	espEnabled = false
+	espButton.Text = "ESP: OFF"
+
+	for target, highlight in pairs(highlights) do
+
+		if highlight then
+			highlight:Destroy()
+		end
+
+		highlights[target] = nil
+
+	end
+
+end
+
+espButton.MouseButton1Click:Connect(function()
+
+	if espEnabled then
+		disableESP()
+	else
+		enableESP()
+	end
+
+end)
+
+Players.PlayerAdded:Connect(function(target)
+
+	target.CharacterAdded:Connect(function()
+
+		if espEnabled then
+			task.wait(0.5)
+			addESP(target)
+		end
+
+	end)
+
+end)
+
+Players.PlayerRemoving:Connect(function(target)
+	removeESP(target)
+end)
+
+--------------------------------------------------
+-- SPEED
+--------------------------------------------------
+
+speedButton.MouseButton1Click:Connect(function()
+
+	local speed = tonumber(speedBox.Text)
+
+	if speed then
+
+		speed = math.clamp(speed, 0, 250)
+
+		local character = player.Character
+
+		if character then
+
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+			if humanoid then
+				humanoid.WalkSpeed = speed
+			end
+
+		end
+
+	end
+
+end)
+
+--------------------------------------------------
+-- JUMP
+--------------------------------------------------
+
+jumpButton.MouseButton1Click:Connect(function()
+
+	local jumpPower = tonumber(jumpBox.Text)
+
+	if jumpPower then
+
+		jumpPower = math.clamp(jumpPower, 0, 250)
+
+		local character = player.Character
+
+		if character then
+
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+			if humanoid then
+				humanoid.UseJumpPower = true
+				humanoid.JumpPower = jumpPower
+			end
+
+		end
+
+	end
+
+end)
+
+--------------------------------------------------
+-- FLY
+--------------------------------------------------
+
+local flying = false
+local flyConnection
+
+local function stopFlying()
+
+	flying = false
+	flyButton.Text = "FLY: OFF"
+
+	if flyConnection then
+		flyConnection:Disconnect()
+		flyConnection = nil
+	end
+
+	local character = player.Character
+
+	if character then
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+		if humanoid then
+			humanoid.PlatformStand = false
+		end
+
+	end
+
+end
+
+local function startFlying()
+
+	local character = player.Character
+
+	if not character then
+		return
+	end
+
+	local root = character:WaitForChild("HumanoidRootPart")
+	local humanoid = character:WaitForChild("Humanoid")
+
+	flying = true
+	flyButton.Text = "FLY: ON"
+
+	humanoid.PlatformStand = true
+
+	flyConnection = RunService.RenderStepped:Connect(function()
+
+		if not flying or not root.Parent then
+			stopFlying()
+			return
+		end
+
+		local camera = workspace.CurrentCamera
+
+		root.AssemblyLinearVelocity =
+			camera.CFrame.LookVector * 60
+
+	end)
+
+end
+
+flyButton.MouseButton1Click:Connect(function()
+
+	if flying then
+		stopFlying()
+	else
+		startFlying()
+	end
+
+end)
+
+--------------------------------------------------
+-- CREDIT
+--------------------------------------------------
+
+local credit = Instance.new("TextLabel")
+credit.Size = UDim2.new(1, 0, 0, 30)
+credit.Position = UDim2.new(0, 0, 1, -40)
+credit.BackgroundTransparency = 1
+credit.Text = "Made By Playmegamarble"
+credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+credit.TextScaled = true
+credit.Font = Enum.Font.Gotham
+credit.Parent = menu
+
+--------------------------------------------------
+-- RESPAWN
+--------------------------------------------------
+
+player.CharacterAdded:Connect(function()
+	stopFlying()
+
+	if espEnabled then
+		task.wait(0.5)
+
+		for _, target in ipairs(Players:GetPlayers()) do
+			if target ~= player then
+				addESP(target)
+			end
+		end
+	end
+end)
