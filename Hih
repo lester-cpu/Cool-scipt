@@ -1,5 +1,5 @@
---// PLAYMEGAMARBLE UI
---// Dark modern UI inspired by the reference image
+--// PLAYMEGAMARBLE MENU
+--// LocalScript - for your own Roblox experience
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -22,6 +22,7 @@ local infiniteJump = false
 local walkFling = false
 local antiFling = false
 
+local savedPresets = {}
 local espObjects = {}
 local flingCooldown = {}
 
@@ -76,7 +77,7 @@ topBar.Parent = window
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -110, 0, 30)
-title.Position = UDim2.new(0, 20, 0, 10)
+title.Position = UDim2.new(0, 20, 0, 8)
 title.BackgroundTransparency = 1
 title.Text = "Playmegamarble"
 title.TextColor3 = WHITE
@@ -87,7 +88,7 @@ title.Parent = topBar
 
 local subtitle = Instance.new("TextLabel")
 subtitle.Size = UDim2.new(1, -110, 0, 20)
-subtitle.Position = UDim2.new(0, 20, 0, 35)
+subtitle.Position = UDim2.new(0, 20, 0, 34)
 subtitle.BackgroundTransparency = 1
 subtitle.Text = "Script Description Example"
 subtitle.TextColor3 = GRAY
@@ -127,36 +128,47 @@ closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = close
 
 --------------------------------------------------
--- TAB BAR
+-- NAVIGATION BAR
 --------------------------------------------------
 
-local tabs = Instance.new("Frame")
-tabs.Size = UDim2.new(1, -30, 0, 38)
-tabs.Position = UDim2.new(0, 15, 0, 68)
-tabs.BackgroundColor3 = PANEL
-tabs.BorderSizePixel = 0
-tabs.Parent = window
+local nav = Instance.new("ScrollingFrame")
+nav.Size = UDim2.new(1, -30, 0, 42)
+nav.Position = UDim2.new(0, 15, 0, 68)
+nav.BackgroundColor3 = PANEL
+nav.BorderSizePixel = 0
+nav.ScrollBarThickness = 2
+nav.ScrollBarImageColor3 = GREEN
+nav.ScrollingDirection = Enum.ScrollingDirection.X
+nav.CanvasSize = UDim2.new(0, 0, 0, 0)
+nav.AutomaticCanvasSize = Enum.AutomaticSize.X
+nav.Parent = window
 
-local tabsCorner = Instance.new("UICorner")
-tabsCorner.CornerRadius = UDim.new(0, 10)
-tabsCorner.Parent = tabs
+local navCorner = Instance.new("UICorner")
+navCorner.CornerRadius = UDim.new(0, 10)
+navCorner.Parent = nav
 
-local tabLayout = Instance.new("UIListLayout")
-tabLayout.FillDirection = Enum.FillDirection.Horizontal
-tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-tabLayout.Padding = UDim.new(0, 4)
-tabLayout.Parent = tabs
+local navLayout = Instance.new("UIListLayout")
+navLayout.FillDirection = Enum.FillDirection.Horizontal
+navLayout.Padding = UDim.new(0, 5)
+navLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+navLayout.Parent = nav
+
+local navPadding = Instance.new("UIPadding")
+navPadding.PaddingLeft = UDim.new(0, 5)
+navPadding.PaddingRight = UDim.new(0, 5)
+navPadding.Parent = nav
 
 local function createTab(text)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0.25, -4, 1, -6)
+	button.Size = UDim2.new(0, 90, 0, 32)
 	button.BackgroundColor3 = ELEMENT
 	button.Text = text
 	button.TextColor3 = GRAY
 	button.Font = Enum.Font.SourceSansBold
 	button.TextSize = 13
 	button.BorderSizePixel = 0
-	button.Parent = tabs
+	button.AutoButtonColor = false
+	button.Parent = nav
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 8)
@@ -169,6 +181,7 @@ local homeTab = createTab("HOME")
 local miscTab = createTab("MISC")
 local creditsTab = createTab("CREDITS")
 local antiTab = createTab("ANTI")
+local settingsTab = createTab("SETTINGS")
 
 --------------------------------------------------
 -- CONTENT
@@ -180,20 +193,13 @@ content.Position = UDim2.new(0, 15, 0, 115)
 content.BackgroundTransparency = 1
 content.BorderSizePixel = 0
 content.ScrollBarThickness = 3
+content.ScrollBarImageColor3 = GREEN
 content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 content.Parent = window
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = content
-
-local padding = Instance.new("UIPadding")
-padding.PaddingBottom = UDim.new(0, 15)
-padding.Parent = content
-
 --------------------------------------------------
--- PAGE SYSTEM
+-- PAGES
 --------------------------------------------------
 
 local pages = {}
@@ -206,9 +212,10 @@ local function createPage()
 	page.Visible = false
 	page.Parent = content
 
-	local pageLayout = Instance.new("UIListLayout")
-	pageLayout.Padding = UDim.new(0, 8)
-	pageLayout.Parent = page
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 8)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = page
 
 	table.insert(pages, page)
 
@@ -219,14 +226,15 @@ local homePage = createPage()
 local miscPage = createPage()
 local creditsPage = createPage()
 local antiPage = createPage()
+local settingsPage = createPage()
 
 --------------------------------------------------
--- SECTION
+-- HELPERS
 --------------------------------------------------
 
 local function createSection(parent, text)
 	local section = Instance.new("TextLabel")
-	section.Size = UDim2.new(1, 0, 0, 28)
+	section.Size = UDim2.new(1, 0, 0, 25)
 	section.BackgroundTransparency = 1
 	section.Text = text
 	section.TextColor3 = GRAY
@@ -234,13 +242,8 @@ local function createSection(parent, text)
 	section.TextSize = 13
 	section.TextXAlignment = Enum.TextXAlignment.Left
 	section.Parent = parent
-
 	return section
 end
-
---------------------------------------------------
--- BUTTON
---------------------------------------------------
 
 local function createButton(parent, text)
 	local button = Instance.new("TextButton")
@@ -259,9 +262,9 @@ local function createButton(parent, text)
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = button
 
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 16)
-	pad.Parent = button
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 16)
+	padding.Parent = button
 
 	button.MouseEnter:Connect(function()
 		button.BackgroundColor3 = HOVER
@@ -273,10 +276,6 @@ local function createButton(parent, text)
 
 	return button
 end
-
---------------------------------------------------
--- INPUT
---------------------------------------------------
 
 local function createInput(parent, placeholder)
 	local box = Instance.new("TextBox")
@@ -296,78 +295,174 @@ local function createInput(parent, placeholder)
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = box
 
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 16)
-	pad.Parent = box
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 16)
+	padding.Parent = box
 
 	return box
 end
 
 --------------------------------------------------
--- STAT
+-- SLIDER
 --------------------------------------------------
 
-local function createStat(parent, name, value)
-	local stat = Instance.new("Frame")
-	stat.Size = UDim2.new(1, 0, 0, 80)
-	stat.BackgroundColor3 = Color3.fromRGB(30, 48, 42)
-	stat.BorderSizePixel = 0
-	stat.Parent = parent
+local function createSlider(parent, name, minimum, maximum, default)
+
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.new(1, 0, 0, 65)
+	holder.BackgroundColor3 = ELEMENT
+	holder.BorderSizePixel = 0
+	holder.Parent = parent
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = stat
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = holder
 
-	local statName = Instance.new("TextLabel")
-	statName.Size = UDim2.new(0.5, 0, 0, 25)
-	statName.Position = UDim2.new(0, 15, 0, 10)
-	statName.BackgroundTransparency = 1
-	statName.Text = name
-	statName.TextColor3 = WHITE
-	statName.Font = Enum.Font.SourceSansBold
-	statName.TextSize = 16
-	statName.TextXAlignment = Enum.TextXAlignment.Left
-	statName.Parent = stat
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.5, 0, 0, 25)
+	label.Position = UDim2.new(0, 15, 0, 7)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = WHITE
+	label.Font = Enum.Font.SourceSans
+	label.TextSize = 16
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = holder
 
-	local statValue = Instance.new("TextLabel")
-	statValue.Size = UDim2.new(0.5, -15, 0, 25)
-	statValue.Position = UDim2.new(0.5, 0, 0, 10)
-	statValue.BackgroundTransparency = 1
-	statValue.Text = value
-	statValue.TextColor3 = GREEN
-	statValue.Font = Enum.Font.SourceSansBold
-	statValue.TextSize = 15
-	statValue.TextXAlignment = Enum.TextXAlignment.Right
-	statValue.Parent = stat
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Size = UDim2.new(0.4, 0, 0, 25)
+	valueLabel.Position = UDim2.new(0.58, 0, 0, 7)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.TextColor3 = GREEN
+	valueLabel.Font = Enum.Font.SourceSansBold
+	valueLabel.TextSize = 15
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.Parent = holder
 
-	return statValue
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, -30, 0, 7)
+	bar.Position = UDim2.new(0, 15, 0, 46)
+	bar.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+	bar.BorderSizePixel = 0
+	bar.Parent = holder
+
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(1, 0)
+	barCorner.Parent = bar
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new(0, 0, 1, 0)
+	fill.BackgroundColor3 = GREEN
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.Parent = fill
+
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.new(0, 15, 0, 15)
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.BackgroundColor3 = GREEN
+	knob.BorderSizePixel = 0
+	knob.Parent = bar
+
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(1, 0)
+	knobCorner.Parent = knob
+
+	local value = default
+	local dragging = false
+
+	local function setValue(newValue)
+		value = math.clamp(
+			math.floor(newValue + 0.5),
+			minimum,
+			maximum
+		)
+
+		local percent =
+			(value - minimum) /
+			(maximum - minimum)
+
+		fill.Size =
+			UDim2.new(percent, 0, 1, 0)
+
+		knob.Position =
+			UDim2.new(percent, 0, 0.5, 0)
+
+		valueLabel.Text = tostring(value)
+	end
+
+	local function updateFromInput(input)
+		local x = input.Position.X
+		local left = bar.AbsolutePosition.X
+		local width = bar.AbsoluteSize.X
+
+		local percent =
+			math.clamp(
+				(x - left) / width,
+				0,
+				1
+			)
+
+		setValue(
+			minimum +
+			(maximum - minimum) * percent
+		)
+	end
+
+	bar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			dragging = true
+			updateFromInput(input)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging then
+			if input.UserInputType == Enum.UserInputType.MouseMovement
+				or input.UserInputType == Enum.UserInputType.Touch then
+
+				updateFromInput(input)
+			end
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			dragging = false
+		end
+	end)
+
+	setValue(default)
+
+	return holder, function()
+		return value
+	end, setValue
 end
 
 --------------------------------------------------
--- HOME PAGE
+-- HOME
 --------------------------------------------------
 
 createSection(homePage, "PLAYER")
 
-local speedStat = createStat(
-	homePage,
-	"WalkSpeed",
-	"16"
-)
+local walkSlider, getWalkSpeed, setWalkSpeed =
+	createSlider(homePage, "WalkSpeed", 1, 200, 16)
 
-local walkInput = createInput(homePage, "WalkSpeed")
+local jumpSlider, getJumpPower, setJumpPower =
+	createSlider(homePage, "JumpPower", 1, 200, 50)
 
-local walkSet = createButton(homePage, "Set WalkSpeed")
-
-local jumpInput = createInput(homePage, "JumpPower")
-
-local jumpSet = createButton(homePage, "Set JumpPower")
-
-local infiniteButton =
+local infiniteJumpButton =
 	createButton(homePage, "Infinite Jump    OFF")
 
 --------------------------------------------------
--- MISC PAGE
+-- MISC
 --------------------------------------------------
 
 createSection(miscPage, "MOVEMENT")
@@ -375,8 +470,8 @@ createSection(miscPage, "MOVEMENT")
 local flyButton =
 	createButton(miscPage, "Fly    OFF")
 
-local flyInput =
-	createInput(miscPage, "Fly Speed")
+local flySlider, getFlySpeed, setFlySpeed =
+	createSlider(miscPage, "Fly Speed", 1, 200, 60)
 
 local noclipButton =
 	createButton(miscPage, "Noclip    OFF")
@@ -390,7 +485,7 @@ local espButton =
 	createButton(miscPage, "ESP    OFF")
 
 --------------------------------------------------
--- CREDITS PAGE
+-- CREDITS
 --------------------------------------------------
 
 createSection(creditsPage, "CREDITS")
@@ -417,7 +512,7 @@ creditText.TextWrapped = true
 creditText.Parent = creditBox
 
 --------------------------------------------------
--- ANTI PAGE
+-- ANTI
 --------------------------------------------------
 
 createSection(antiPage, "ANTI")
@@ -428,7 +523,8 @@ local antiButton =
 local antiDescription = Instance.new("TextLabel")
 antiDescription.Size = UDim2.new(1, 0, 0, 45)
 antiDescription.BackgroundTransparency = 1
-antiDescription.Text = "Stops other players from physically colliding with you."
+antiDescription.Text =
+	"Stops other players from physically colliding with you."
 antiDescription.TextColor3 = GRAY
 antiDescription.Font = Enum.Font.SourceSans
 antiDescription.TextSize = 14
@@ -437,10 +533,122 @@ antiDescription.TextXAlignment = Enum.TextXAlignment.Left
 antiDescription.Parent = antiPage
 
 --------------------------------------------------
--- SHOW PAGE
+-- SETTINGS
+--------------------------------------------------
+
+createSection(settingsPage, "SAVED SETTINGS")
+
+local presetName = createInput(
+	settingsPage,
+	"Preset name..."
+)
+
+local saveButton =
+	createButton(settingsPage, "Save Current Settings")
+
+local loadName = createInput(
+	settingsPage,
+	"Name of preset to load..."
+)
+
+local loadButton =
+	createButton(settingsPage, "Load Saved Settings")
+
+local savedList = Instance.new("TextLabel")
+savedList.Size = UDim2.new(1, 0, 0, 40)
+savedList.BackgroundTransparency = 1
+savedList.Text = "Saved presets: None"
+savedList.TextColor3 = GRAY
+savedList.Font = Enum.Font.SourceSans
+savedList.TextSize = 14
+savedList.TextXAlignment = Enum.TextXAlignment.Left
+savedList.Parent = settingsPage
+
+--------------------------------------------------
+-- BACKGROUND COLOR
+--------------------------------------------------
+
+createSection(settingsPage, "APPEARANCE")
+
+local backgroundButton =
+	createButton(settingsPage, "Background Color")
+
+local colorList = Instance.new("ScrollingFrame")
+colorList.Size = UDim2.new(1, 0, 0, 0)
+colorList.AutomaticSize = Enum.AutomaticSize.Y
+colorList.BackgroundColor3 = PANEL
+colorList.BorderSizePixel = 0
+colorList.Visible = false
+colorList.ScrollBarThickness = 3
+colorList.ScrollBarImageColor3 = GREEN
+colorList.CanvasSize = UDim2.new(0, 0, 0, 0)
+colorList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+colorList.Parent = settingsPage
+
+local colorListCorner = Instance.new("UICorner")
+colorListCorner.CornerRadius = UDim.new(0, 10)
+colorListCorner.Parent = colorList
+
+local colorLayout = Instance.new("UIListLayout")
+colorLayout.Padding = UDim.new(0, 5)
+colorLayout.Parent = colorList
+
+local colorPadding = Instance.new("UIPadding")
+colorPadding.PaddingTop = UDim.new(0, 5)
+colorPadding.PaddingBottom = UDim.new(0, 5)
+colorPadding.PaddingLeft = UDim.new(0, 5)
+colorPadding.PaddingRight = UDim.new(0, 5)
+colorPadding.Parent = colorList
+
+--------------------------------------------------
+-- BACKGROUND COLORS
+--------------------------------------------------
+
+local backgroundColors = {
+	Red = Color3.fromRGB(45, 20, 20),
+	Blue = Color3.fromRGB(20, 30, 55),
+	Green = Color3.fromRGB(20, 45, 35),
+	Purple = Color3.fromRGB(40, 20, 55),
+	Pink = Color3.fromRGB(55, 25, 40),
+	Yellow = Color3.fromRGB(55, 48, 20),
+	Midnight = Color3.fromRGB(12, 15, 25)
+}
+
+local function changeBackground(color)
+	BG = color
+	window.BackgroundColor3 = color
+end
+
+for name, color in pairs(backgroundColors) do
+	local colorButton = Instance.new("TextButton")
+	colorButton.Size = UDim2.new(1, 0, 0, 40)
+	colorButton.BackgroundColor3 = color
+	colorButton.Text = name
+	colorButton.TextColor3 = WHITE
+	colorButton.Font = Enum.Font.SourceSansBold
+	colorButton.TextSize = 15
+	colorButton.BorderSizePixel = 0
+	colorButton.Parent = colorList
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = colorButton
+
+	colorButton.MouseButton1Click:Connect(function()
+		changeBackground(color)
+	end)
+end
+
+backgroundButton.MouseButton1Click:Connect(function()
+	colorList.Visible = not colorList.Visible
+end)
+
+--------------------------------------------------
+-- PAGE SWITCHING
 --------------------------------------------------
 
 local function showPage(page, selectedTab)
+
 	for _, p in ipairs(pages) do
 		p.Visible = false
 	end
@@ -449,6 +657,7 @@ local function showPage(page, selectedTab)
 	miscTab.TextColor3 = GRAY
 	creditsTab.TextColor3 = GRAY
 	antiTab.TextColor3 = GRAY
+	settingsTab.TextColor3 = GRAY
 
 	page.Visible = true
 	selectedTab.TextColor3 = GREEN
@@ -472,6 +681,10 @@ antiTab.MouseButton1Click:Connect(function()
 	showPage(antiPage, antiTab)
 end)
 
+settingsTab.MouseButton1Click:Connect(function()
+	showPage(settingsPage, settingsTab)
+end)
+
 showPage(homePage, homeTab)
 
 --------------------------------------------------
@@ -493,57 +706,22 @@ local function getRoot()
 end
 
 --------------------------------------------------
--- WALK SPEED
---------------------------------------------------
-
-walkSet.MouseButton1Click:Connect(function()
-	local value = tonumber(walkInput.Text)
-
-	if value then
-		walkSpeed = value
-		speedStat.Text = tostring(value)
-
-		local humanoid = getHumanoid()
-
-		if humanoid then
-			humanoid.WalkSpeed = value
-		end
-	end
-end)
-
---------------------------------------------------
--- JUMP POWER
---------------------------------------------------
-
-jumpSet.MouseButton1Click:Connect(function()
-	local value = tonumber(jumpInput.Text)
-
-	if value then
-		jumpPower = value
-
-		local humanoid = getHumanoid()
-
-		if humanoid then
-			humanoid.UseJumpPower = true
-			humanoid.JumpPower = value
-		end
-	end
-end)
-
---------------------------------------------------
 -- INFINITE JUMP
 --------------------------------------------------
 
-infiniteButton.MouseButton1Click:Connect(function()
+infiniteJumpButton.MouseButton1Click:Connect(function()
+
 	infiniteJump = not infiniteJump
 
-	infiniteButton.Text =
+	infiniteJumpButton.Text =
 		"Infinite Jump    " ..
 		(infiniteJump and "ON" or "OFF")
 end)
 
 UserInputService.JumpRequest:Connect(function()
+
 	if infiniteJump then
+
 		local humanoid = getHumanoid()
 
 		if humanoid then
@@ -561,6 +739,7 @@ end)
 local flyConnection
 
 local function startFly()
+
 	if flying then
 		return
 	end
@@ -574,37 +753,46 @@ local function startFly()
 		humanoid.PlatformStand = true
 	end
 
-	flyConnection = RunService.RenderStepped:Connect(function()
-		if not flying then
-			return
-		end
+	flyConnection =
+		RunService.RenderStepped:Connect(function()
 
-		local root = getRoot()
-		local humanoid = getHumanoid()
-		local camera = workspace.CurrentCamera
+			if not flying then
+				return
+			end
 
-		if not root or not humanoid or not camera then
-			return
-		end
+			local root = getRoot()
+			local humanoid = getHumanoid()
+			local camera = workspace.CurrentCamera
 
-		if humanoid.MoveDirection.Magnitude > 0 then
-			local direction = camera.CFrame.LookVector
+			if not root or not humanoid or not camera then
+				return
+			end
 
-			root.AssemblyLinearVelocity =
-				direction.Unit * flySpeed
+			flySpeed = getFlySpeed()
 
-			root.CFrame =
-				CFrame.lookAt(
-					root.Position,
-					root.Position + direction
-				)
-		else
-			root.AssemblyLinearVelocity = Vector3.zero
-		end
-	end)
+			if humanoid.MoveDirection.Magnitude > 0 then
+
+				local direction =
+					camera.CFrame.LookVector
+
+				root.AssemblyLinearVelocity =
+					direction.Unit * flySpeed
+
+				root.CFrame =
+					CFrame.lookAt(
+						root.Position,
+						root.Position + direction
+					)
+
+			else
+				root.AssemblyLinearVelocity =
+					Vector3.zero
+			end
+		end)
 end
 
 local function stopFly()
+
 	flying = false
 	flyButton.Text = "Fly    OFF"
 
@@ -622,23 +810,17 @@ local function stopFly()
 	local root = getRoot()
 
 	if root then
-		root.AssemblyLinearVelocity = Vector3.zero
+		root.AssemblyLinearVelocity =
+			Vector3.zero
 	end
 end
 
 flyButton.MouseButton1Click:Connect(function()
+
 	if flying then
 		stopFly()
 	else
 		startFly()
-	end
-end)
-
-flyInput.FocusLost:Connect(function()
-	local value = tonumber(flyInput.Text)
-
-	if value then
-		flySpeed = value
 	end
 end)
 
@@ -647,6 +829,7 @@ end)
 --------------------------------------------------
 
 local function getHealthColor(humanoid)
+
 	if humanoid.Health <= 0 then
 		return PURPLE
 	end
@@ -664,6 +847,7 @@ local function getHealthColor(humanoid)
 end
 
 local function removeESP(target)
+
 	local object = espObjects[target]
 
 	if not object then
@@ -686,6 +870,7 @@ local function removeESP(target)
 end
 
 local function addESP(target)
+
 	if target == player or espObjects[target] then
 		return
 	end
@@ -727,21 +912,19 @@ local function addESP(target)
 	label.Parent = billboard
 
 	local function update()
+
 		if not humanoid.Parent then
 			return
 		end
 
-		local health = math.max(
-			0,
-			math.floor(humanoid.Health)
-		)
+		local health =
+			math.max(0, math.floor(humanoid.Health))
 
-		local maxHealth = math.max(
-			1,
-			math.floor(humanoid.MaxHealth)
-		)
+		local maxHealth =
+			math.max(1, math.floor(humanoid.MaxHealth))
 
-		local color = getHealthColor(humanoid)
+		local color =
+			getHealthColor(humanoid)
 
 		label.Text =
 			target.Name ..
@@ -768,6 +951,7 @@ local function addESP(target)
 end
 
 local function enableESP()
+
 	espEnabled = true
 	espButton.Text = "ESP    ON"
 
@@ -777,6 +961,7 @@ local function enableESP()
 end
 
 local function disableESP()
+
 	espEnabled = false
 	espButton.Text = "ESP    OFF"
 
@@ -786,6 +971,7 @@ local function disableESP()
 end
 
 espButton.MouseButton1Click:Connect(function()
+
 	if espEnabled then
 		disableESP()
 	else
@@ -794,7 +980,9 @@ espButton.MouseButton1Click:Connect(function()
 end)
 
 Players.PlayerAdded:Connect(function(target)
+
 	target.CharacterAdded:Connect(function()
+
 		task.wait(1)
 
 		if espEnabled then
@@ -812,6 +1000,7 @@ end)
 --------------------------------------------------
 
 noclipButton.MouseButton1Click:Connect(function()
+
 	noclip = not noclip
 
 	noclipButton.Text =
@@ -824,6 +1013,7 @@ end)
 --------------------------------------------------
 
 walkFlingButton.MouseButton1Click:Connect(function()
+
 	walkFling = not walkFling
 
 	walkFlingButton.Text =
@@ -836,12 +1026,17 @@ end)
 --------------------------------------------------
 
 local function updateAntiFling()
+
 	for _, target in ipairs(Players:GetPlayers()) do
+
 		if target ~= player then
+
 			local character = target.Character
 
 			if character then
+
 				for _, part in ipairs(character:GetDescendants()) do
+
 					if part:IsA("BasePart") then
 						part.CanCollide = not antiFling
 					end
@@ -852,6 +1047,7 @@ local function updateAntiFling()
 end
 
 antiButton.MouseButton1Click:Connect(function()
+
 	antiFling = not antiFling
 
 	antiButton.Text =
@@ -862,10 +1058,188 @@ antiButton.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------
+-- SAVE SETTINGS
+--------------------------------------------------
+
+local function getCurrentSettings()
+
+	return {
+		walkSpeed = getWalkSpeed(),
+		jumpPower = getJumpPower(),
+		flySpeed = getFlySpeed(),
+
+		flying = flying,
+		espEnabled = espEnabled,
+		noclip = noclip,
+		infiniteJump = infiniteJump,
+		walkFling = walkFling,
+		antiFling = antiFling,
+
+		background = window.BackgroundColor3
+	}
+end
+
+local function updateSavedList()
+
+	local names = {}
+
+	for name in pairs(savedPresets) do
+		table.insert(names, name)
+	end
+
+	table.sort(names)
+
+	if #names == 0 then
+		savedList.Text = "Saved presets: None"
+	else
+		savedList.Text =
+			"Saved presets: " ..
+			table.concat(names, ", ")
+	end
+end
+
+saveButton.MouseButton1Click:Connect(function()
+
+	local name =
+		presetName.Text:gsub("^%s*(.-)%s*$", "%1")
+
+	if name == "" then
+		return
+	end
+
+	savedPresets[name] = getCurrentSettings()
+
+	updateSavedList()
+
+	saveButton.Text = "Saved: " .. name
+
+	task.delay(1.5, function()
+		if saveButton.Parent then
+			saveButton.Text =
+				"Save Current Settings"
+		end
+	end)
+end)
+
+--------------------------------------------------
+-- LOAD SETTINGS
+--------------------------------------------------
+
+loadButton.MouseButton1Click:Connect(function()
+
+	local name =
+		loadName.Text:gsub("^%s*(.-)%s*$", "%1")
+
+	local settings =
+		savedPresets[name]
+
+	if not settings then
+
+		loadButton.Text = "Preset Not Found"
+
+		task.delay(1.5, function()
+			if loadButton.Parent then
+				loadButton.Text =
+					"Load Saved Settings"
+			end
+		end)
+
+		return
+	end
+
+	------------------------------------------------
+	-- VALUES
+	------------------------------------------------
+
+	setWalkSpeed(settings.walkSpeed)
+	setJumpPower(settings.jumpPower)
+	setFlySpeed(settings.flySpeed)
+
+	walkSpeed = settings.walkSpeed
+	jumpPower = settings.jumpPower
+	flySpeed = settings.flySpeed
+
+	------------------------------------------------
+	-- TOGGLES
+	------------------------------------------------
+
+	if infiniteJump ~= settings.infiniteJump then
+		infiniteJump = settings.infiniteJump
+
+		infiniteJumpButton.Text =
+			"Infinite Jump    " ..
+			(infiniteJump and "ON" or "OFF")
+	end
+
+	if noclip ~= settings.noclip then
+		noclip = settings.noclip
+
+		noclipButton.Text =
+			"Noclip    " ..
+			(noclip and "ON" or "OFF")
+	end
+
+	if espEnabled ~= settings.espEnabled then
+
+		if settings.espEnabled then
+			enableESP()
+		else
+			disableESP()
+		end
+	end
+
+	if walkFling ~= settings.walkFling then
+
+		walkFling = settings.walkFling
+
+		walkFlingButton.Text =
+			"Walk Fling    " ..
+			(walkFling and "ON" or "OFF")
+	end
+
+	if antiFling ~= settings.antiFling then
+
+		antiFling = settings.antiFling
+
+		antiButton.Text =
+			"Anti Fling    " ..
+			(antiFling and "ON" or "OFF")
+
+		updateAntiFling()
+	end
+
+	if flying ~= settings.flying then
+
+		if settings.flying then
+			startFly()
+		else
+			stopFly()
+		end
+	end
+
+	------------------------------------------------
+	-- BACKGROUND
+	------------------------------------------------
+
+	window.BackgroundColor3 =
+		settings.background
+
+	loadButton.Text = "Loaded: " .. name
+
+	task.delay(1.5, function()
+		if loadButton.Parent then
+			loadButton.Text =
+				"Load Saved Settings"
+		end
+	end)
+end)
+
+--------------------------------------------------
 -- MAIN LOOP
 --------------------------------------------------
 
 RunService.Heartbeat:Connect(function()
+
 	local character = getCharacter()
 
 	if not character then
@@ -878,10 +1252,27 @@ RunService.Heartbeat:Connect(function()
 	local root =
 		character:FindFirstChild("HumanoidRootPart")
 
+	------------------------------------------------
+	-- SLIDER VALUES
+	------------------------------------------------
+
+	walkSpeed = getWalkSpeed()
+	jumpPower = getJumpPower()
+	flySpeed = getFlySpeed()
+
+	------------------------------------------------
+	-- PLAYER SETTINGS
+	------------------------------------------------
+
 	if humanoid then
-		humanoid.WalkSpeed = walkSpeed
+
+		humanoid.WalkSpeed =
+			walkSpeed
+
 		humanoid.UseJumpPower = true
-		humanoid.JumpPower = jumpPower
+
+		humanoid.JumpPower =
+			jumpPower
 	end
 
 	------------------------------------------------
@@ -889,7 +1280,9 @@ RunService.Heartbeat:Connect(function()
 	------------------------------------------------
 
 	if noclip then
+
 		for _, part in ipairs(character:GetDescendants()) do
+
 			if part:IsA("BasePart") then
 				part.CanCollide = false
 			end
@@ -907,6 +1300,7 @@ RunService.Heartbeat:Connect(function()
 			Vector3.new(0, 100000, 0)
 
 		for _, target in ipairs(Players:GetPlayers()) do
+
 			if target ~= player then
 
 				local targetCharacter =
@@ -919,11 +1313,13 @@ RunService.Heartbeat:Connect(function()
 					)
 
 				if targetRoot then
+
 					local distance =
 						(root.Position -
 							targetRoot.Position).Magnitude
 
 					if distance <= 4 then
+
 						local now = os.clock()
 
 						if not flingCooldown[target]
@@ -952,7 +1348,9 @@ RunService.Heartbeat:Connect(function()
 				end
 			end
 		end
+
 	else
+
 		if root then
 			root.AssemblyAngularVelocity =
 				Vector3.zero
@@ -973,18 +1371,36 @@ end)
 --------------------------------------------------
 
 player.CharacterAdded:Connect(function()
+
 	task.wait(1)
 
 	local humanoid = getHumanoid()
 
 	if humanoid then
-		humanoid.WalkSpeed = walkSpeed
+
+		humanoid.WalkSpeed =
+			walkSpeed
+
 		humanoid.UseJumpPower = true
-		humanoid.JumpPower = jumpPower
+
+		humanoid.JumpPower =
+			jumpPower
 	end
 
 	if antiFling then
 		updateAntiFling()
+	end
+
+	if espEnabled then
+
+		task.wait(1)
+
+		for _, target in ipairs(Players:GetPlayers()) do
+
+			if target ~= player then
+				addESP(target)
+			end
+		end
 	end
 end)
 
@@ -1009,16 +1425,19 @@ reopenCorner.CornerRadius = UDim.new(0, 10)
 reopenCorner.Parent = reopen
 
 minimize.MouseButton1Click:Connect(function()
+
 	window.Visible = false
 	reopen.Visible = true
 end)
 
 reopen.MouseButton1Click:Connect(function()
+
 	window.Visible = true
 	reopen.Visible = false
 end)
 
 close.MouseButton1Click:Connect(function()
+
 	window.Visible = false
 	reopen.Visible = true
 end)
@@ -1032,8 +1451,11 @@ local dragStart
 local startPosition
 
 topBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
+
+	if input.UserInputType ==
+		Enum.UserInputType.MouseButton1
+		or input.UserInputType ==
+		Enum.UserInputType.Touch then
 
 		dragging = true
 		dragStart = input.Position
@@ -1042,12 +1464,15 @@ topBar.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
+
 	if not dragging then
 		return
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType ==
+		Enum.UserInputType.MouseMovement
+		or input.UserInputType ==
+		Enum.UserInputType.Touch then
 
 		local delta =
 			input.Position - dragStart
@@ -1063,8 +1488,11 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
+
+	if input.UserInputType ==
+		Enum.UserInputType.MouseButton1
+		or input.UserInputType ==
+		Enum.UserInputType.Touch then
 
 		dragging = false
 	end
