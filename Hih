@@ -60,6 +60,7 @@ window.Size = UDim2.new(0, 430, 0, 470)
 window.Position = UDim2.new(0.5, -215, 0.5, -235)
 window.BackgroundColor3 = BG
 window.BorderSizePixel = 0
+window.Active = true
 window.Parent = gui
 
 local windowCorner = Instance.new("UICorner")
@@ -159,6 +160,7 @@ navPadding.PaddingRight = UDim.new(0, 5)
 navPadding.Parent = nav
 
 local function createTab(text)
+
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(0, 90, 0, 32)
 	button.BackgroundColor3 = ELEMENT
@@ -205,6 +207,7 @@ content.Parent = window
 local pages = {}
 
 local function createPage()
+
 	local page = Instance.new("Frame")
 	page.Size = UDim2.new(1, 0, 0, 0)
 	page.AutomaticSize = Enum.AutomaticSize.Y
@@ -233,6 +236,7 @@ local settingsPage = createPage()
 --------------------------------------------------
 
 local function createSection(parent, text)
+
 	local section = Instance.new("TextLabel")
 	section.Size = UDim2.new(1, 0, 0, 25)
 	section.BackgroundTransparency = 1
@@ -242,10 +246,12 @@ local function createSection(parent, text)
 	section.TextSize = 13
 	section.TextXAlignment = Enum.TextXAlignment.Left
 	section.Parent = parent
+
 	return section
 end
 
 local function createButton(parent, text)
+
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, 0, 0, 44)
 	button.BackgroundColor3 = ELEMENT
@@ -278,6 +284,7 @@ local function createButton(parent, text)
 end
 
 local function createInput(parent, placeholder)
+
 	local box = Instance.new("TextBox")
 	box.Size = UDim2.new(1, 0, 0, 44)
 	box.BackgroundColor3 = ELEMENT
@@ -372,9 +379,10 @@ local function createSlider(parent, name, minimum, maximum, default)
 	knobCorner.Parent = knob
 
 	local value = default
-	local dragging = false
+	local draggingSlider = false
 
 	local function setValue(newValue)
+
 		value = math.clamp(
 			math.floor(newValue + 0.5),
 			minimum,
@@ -395,6 +403,7 @@ local function createSlider(parent, name, minimum, maximum, default)
 	end
 
 	local function updateFromInput(input)
+
 		local x = input.Position.X
 		local left = bar.AbsolutePosition.X
 		local width = bar.AbsoluteSize.X
@@ -413,16 +422,19 @@ local function createSlider(parent, name, minimum, maximum, default)
 	end
 
 	bar.InputBegan:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
 
-			dragging = true
+			draggingSlider = true
 			updateFromInput(input)
 		end
 	end)
 
 	UserInputService.InputChanged:Connect(function(input)
-		if dragging then
+
+		if draggingSlider then
+
 			if input.UserInputType == Enum.UserInputType.MouseMovement
 				or input.UserInputType == Enum.UserInputType.Touch then
 
@@ -432,10 +444,11 @@ local function createSlider(parent, name, minimum, maximum, default)
 	end)
 
 	UserInputService.InputEnded:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
 
-			dragging = false
+			draggingSlider = false
 		end
 	end)
 
@@ -574,8 +587,7 @@ local backgroundButton =
 	createButton(settingsPage, "Background Color")
 
 local colorList = Instance.new("ScrollingFrame")
-colorList.Size = UDim2.new(1, 0, 0, 0)
-colorList.AutomaticSize = Enum.AutomaticSize.Y
+colorList.Size = UDim2.new(1, 0, 0, 145)
 colorList.BackgroundColor3 = PANEL
 colorList.BorderSizePixel = 0
 colorList.Visible = false
@@ -614,12 +626,8 @@ local backgroundColors = {
 	Midnight = Color3.fromRGB(12, 15, 25)
 }
 
-local function changeBackground(color)
-	BG = color
-	window.BackgroundColor3 = color
-end
-
 for name, color in pairs(backgroundColors) do
+
 	local colorButton = Instance.new("TextButton")
 	colorButton.Size = UDim2.new(1, 0, 0, 40)
 	colorButton.BackgroundColor3 = color
@@ -635,7 +643,10 @@ for name, color in pairs(backgroundColors) do
 	corner.Parent = colorButton
 
 	colorButton.MouseButton1Click:Connect(function()
-		changeBackground(color)
+
+		window.BackgroundColor3 = color
+		backgroundButton.Text =
+			"Background Color    " .. name
 	end)
 end
 
@@ -696,13 +707,19 @@ local function getCharacter()
 end
 
 local function getHumanoid()
+
 	local character = getCharacter()
-	return character and character:FindFirstChildOfClass("Humanoid")
+
+	return character and
+		character:FindFirstChildOfClass("Humanoid")
 end
 
 local function getRoot()
+
 	local character = getCharacter()
-	return character and character:FindFirstChild("HumanoidRootPart")
+
+	return character and
+		character:FindFirstChild("HumanoidRootPart")
 end
 
 --------------------------------------------------
@@ -785,6 +802,7 @@ local function startFly()
 					)
 
 			else
+
 				root.AssemblyLinearVelocity =
 					Vector3.zero
 			end
@@ -1107,13 +1125,16 @@ saveButton.MouseButton1Click:Connect(function()
 		return
 	end
 
-	savedPresets[name] = getCurrentSettings()
+	savedPresets[name] =
+		getCurrentSettings()
 
 	updateSavedList()
 
-	saveButton.Text = "Saved: " .. name
+	saveButton.Text =
+		"Saved: " .. name
 
 	task.delay(1.5, function()
+
 		if saveButton.Parent then
 			saveButton.Text =
 				"Save Current Settings"
@@ -1135,9 +1156,11 @@ loadButton.MouseButton1Click:Connect(function()
 
 	if not settings then
 
-		loadButton.Text = "Preset Not Found"
+		loadButton.Text =
+			"Preset Not Found"
 
 		task.delay(1.5, function()
+
 			if loadButton.Parent then
 				loadButton.Text =
 					"Load Saved Settings"
@@ -1147,10 +1170,6 @@ loadButton.MouseButton1Click:Connect(function()
 		return
 	end
 
-	------------------------------------------------
-	-- VALUES
-	------------------------------------------------
-
 	setWalkSpeed(settings.walkSpeed)
 	setJumpPower(settings.jumpPower)
 	setFlySpeed(settings.flySpeed)
@@ -1159,12 +1178,10 @@ loadButton.MouseButton1Click:Connect(function()
 	jumpPower = settings.jumpPower
 	flySpeed = settings.flySpeed
 
-	------------------------------------------------
-	-- TOGGLES
-	------------------------------------------------
-
 	if infiniteJump ~= settings.infiniteJump then
-		infiniteJump = settings.infiniteJump
+
+		infiniteJump =
+			settings.infiniteJump
 
 		infiniteJumpButton.Text =
 			"Infinite Jump    " ..
@@ -1172,7 +1189,9 @@ loadButton.MouseButton1Click:Connect(function()
 	end
 
 	if noclip ~= settings.noclip then
-		noclip = settings.noclip
+
+		noclip =
+			settings.noclip
 
 		noclipButton.Text =
 			"Noclip    " ..
@@ -1190,7 +1209,8 @@ loadButton.MouseButton1Click:Connect(function()
 
 	if walkFling ~= settings.walkFling then
 
-		walkFling = settings.walkFling
+		walkFling =
+			settings.walkFling
 
 		walkFlingButton.Text =
 			"Walk Fling    " ..
@@ -1199,7 +1219,8 @@ loadButton.MouseButton1Click:Connect(function()
 
 	if antiFling ~= settings.antiFling then
 
-		antiFling = settings.antiFling
+		antiFling =
+			settings.antiFling
 
 		antiButton.Text =
 			"Anti Fling    " ..
@@ -1217,16 +1238,14 @@ loadButton.MouseButton1Click:Connect(function()
 		end
 	end
 
-	------------------------------------------------
-	-- BACKGROUND
-	------------------------------------------------
-
 	window.BackgroundColor3 =
 		settings.background
 
-	loadButton.Text = "Loaded: " .. name
+	loadButton.Text =
+		"Loaded: " .. name
 
 	task.delay(1.5, function()
+
 		if loadButton.Parent then
 			loadButton.Text =
 				"Load Saved Settings"
@@ -1252,17 +1271,9 @@ RunService.Heartbeat:Connect(function()
 	local root =
 		character:FindFirstChild("HumanoidRootPart")
 
-	------------------------------------------------
-	-- SLIDER VALUES
-	------------------------------------------------
-
 	walkSpeed = getWalkSpeed()
 	jumpPower = getJumpPower()
 	flySpeed = getFlySpeed()
-
-	------------------------------------------------
-	-- PLAYER SETTINGS
-	------------------------------------------------
 
 	if humanoid then
 
@@ -1275,10 +1286,6 @@ RunService.Heartbeat:Connect(function()
 			jumpPower
 	end
 
-	------------------------------------------------
-	-- NOCLIP
-	------------------------------------------------
-
 	if noclip then
 
 		for _, part in ipairs(character:GetDescendants()) do
@@ -1289,13 +1296,8 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 
-	------------------------------------------------
-	-- WALK FLING
-	------------------------------------------------
-
 	if walkFling and root then
 
-		-- Extremely fast spinning
 		root.AssemblyAngularVelocity =
 			Vector3.new(0, 100000, 0)
 
@@ -1320,7 +1322,8 @@ RunService.Heartbeat:Connect(function()
 
 					if distance <= 4 then
 
-						local now = os.clock()
+						local now =
+							os.clock()
 
 						if not flingCooldown[target]
 							or now -
@@ -1349,17 +1352,11 @@ RunService.Heartbeat:Connect(function()
 			end
 		end
 
-	else
+	elseif root then
 
-		if root then
-			root.AssemblyAngularVelocity =
-				Vector3.zero
-		end
+		root.AssemblyAngularVelocity =
+			Vector3.zero
 	end
-
-	------------------------------------------------
-	-- ANTI FLING
-	------------------------------------------------
 
 	if antiFling then
 		updateAntiFling()
@@ -1405,7 +1402,7 @@ player.CharacterAdded:Connect(function()
 end)
 
 --------------------------------------------------
--- MINIMIZE / CLOSE
+-- MINIMIZE / REOPEN
 --------------------------------------------------
 
 local reopen = Instance.new("TextButton")
@@ -1443,49 +1440,99 @@ close.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------
--- DRAGGING
+-- DRAG FROM ANY NON-BUTTON AREA
 --------------------------------------------------
 
-local dragging = false
+local draggingMenu = false
 local dragStart
 local startPosition
 
-topBar.InputBegan:Connect(function(input)
+local function isInteractive(object)
+
+	return object:IsA("GuiButton")
+		or object:IsA("TextBox")
+end
+
+local function beginMenuDrag(input)
+
+	local target = input.Target
+
+	if target and isInteractive(target) then
+		return
+	end
+
+	draggingMenu = true
+	dragStart = input.Position
+	startPosition = window.Position
+end
+
+local function updateMenuDrag(input)
+
+	if not draggingMenu then
+		return
+	end
+
+	local delta =
+		input.Position - dragStart
+
+	window.Position =
+		UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+end
+
+local function stopMenuDrag()
+	draggingMenu = false
+end
+
+--------------------------------------------------
+-- MOUSE
+--------------------------------------------------
+
+window.InputBegan:Connect(function(input)
 
 	if input.UserInputType ==
-		Enum.UserInputType.MouseButton1
-		or input.UserInputType ==
-		Enum.UserInputType.Touch then
+		Enum.UserInputType.MouseButton1 then
 
-		dragging = true
-		dragStart = input.Position
-		startPosition = window.Position
+		beginMenuDrag(input)
 	end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
+--------------------------------------------------
+-- TOUCH / MOBILE
+--------------------------------------------------
 
-	if not dragging then
-		return
+window.InputBegan:Connect(function(input)
+
+	if input.UserInputType ==
+		Enum.UserInputType.Touch then
+
+		beginMenuDrag(input)
 	end
+end)
+
+--------------------------------------------------
+-- DRAG MOVEMENT
+--------------------------------------------------
+
+UserInputService.InputChanged:Connect(function(input)
 
 	if input.UserInputType ==
 		Enum.UserInputType.MouseMovement
 		or input.UserInputType ==
 		Enum.UserInputType.Touch then
 
-		local delta =
-			input.Position - dragStart
-
-		window.Position =
-			UDim2.new(
-				startPosition.X.Scale,
-				startPosition.X.Offset + delta.X,
-				startPosition.Y.Scale,
-				startPosition.Y.Offset + delta.Y
-			)
+		updateMenuDrag(input)
 	end
 end)
+
+--------------------------------------------------
+-- STOP DRAGGING
+--------------------------------------------------
 
 UserInputService.InputEnded:Connect(function(input)
 
@@ -1494,6 +1541,6 @@ UserInputService.InputEnded:Connect(function(input)
 		or input.UserInputType ==
 		Enum.UserInputType.Touch then
 
-		dragging = false
+		stopMenuDrag()
 	end
 end)
