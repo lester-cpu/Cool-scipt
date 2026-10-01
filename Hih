@@ -1,5 +1,5 @@
---// PLAYMEGAMARBLE MENU
---// LocalScript - for your own Roblox experience
+--// PLAYMEGAMARBLE UI
+--// Dark modern UI inspired by the reference image
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,14 +7,17 @@ local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
---// SETTINGS
+--------------------------------------------------
+-- SETTINGS
+--------------------------------------------------
+
 local walkSpeed = 16
 local jumpPower = 50
 local flySpeed = 60
 
 local flying = false
-local noclip = false
 local espEnabled = false
+local noclip = false
 local infiniteJump = false
 local walkFling = false
 local antiFling = false
@@ -22,292 +25,521 @@ local antiFling = false
 local espObjects = {}
 local flingCooldown = {}
 
---// COLORS
-local BLACK = Color3.fromRGB(0, 0, 0)
-local DARK = Color3.fromRGB(15, 15, 15)
-local RED = Color3.fromRGB(255, 0, 0)
-local WHITE = Color3.fromRGB(255, 255, 255)
+--------------------------------------------------
+-- COLORS
+--------------------------------------------------
 
---// GUI
+local BG = Color3.fromRGB(25, 25, 25)
+local PANEL = Color3.fromRGB(31, 31, 31)
+local ELEMENT = Color3.fromRGB(38, 38, 38)
+local HOVER = Color3.fromRGB(48, 48, 48)
+
+local WHITE = Color3.fromRGB(235, 235, 235)
+local GRAY = Color3.fromRGB(145, 145, 145)
+local GREEN = Color3.fromRGB(60, 210, 145)
+local RED = Color3.fromRGB(255, 80, 80)
+local YELLOW = Color3.fromRGB(255, 210, 70)
+local PURPLE = Color3.fromRGB(180, 80, 255)
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "PlaymegamarbleMenu"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
---// MAIN MENU
-local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 310, 0, 400)
-menu.Position = UDim2.new(0.5, -155, 0.5, -200)
-menu.BackgroundColor3 = BLACK
-menu.BorderSizePixel = 2
-menu.BorderColor3 = RED
-menu.Parent = gui
+--------------------------------------------------
+-- MAIN WINDOW
+--------------------------------------------------
 
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 16)
-menuCorner.Parent = menu
+local window = Instance.new("Frame")
+window.Size = UDim2.new(0, 430, 0, 470)
+window.Position = UDim2.new(0.5, -215, 0.5, -235)
+window.BackgroundColor3 = BG
+window.BorderSizePixel = 0
+window.Parent = gui
 
---// STYLE
-local function style(object)
-	object.BackgroundColor3 = DARK
-	object.BorderSizePixel = 1
-	object.BorderColor3 = RED
-	object.TextColor3 = WHITE
-	object.Font = Enum.Font.SourceSansBold
-	object.TextScaled = true
+local windowCorner = Instance.new("UICorner")
+windowCorner.CornerRadius = UDim.new(0, 18)
+windowCorner.Parent = window
+
+--------------------------------------------------
+-- TOP BAR
+--------------------------------------------------
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 65)
+topBar.BackgroundTransparency = 1
+topBar.Parent = window
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -110, 0, 30)
+title.Position = UDim2.new(0, 20, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "Playmegamarble"
+title.TextColor3 = WHITE
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 21
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -110, 0, 20)
+subtitle.Position = UDim2.new(0, 20, 0, 35)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Script Description Example"
+subtitle.TextColor3 = GRAY
+subtitle.Font = Enum.Font.SourceSans
+subtitle.TextSize = 13
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = topBar
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -70, 0, 17)
+minimize.BackgroundColor3 = ELEMENT
+minimize.Text = "—"
+minimize.TextColor3 = GRAY
+minimize.Font = Enum.Font.SourceSansBold
+minimize.TextSize = 16
+minimize.BorderSizePixel = 0
+minimize.Parent = topBar
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 8)
+minCorner.Parent = minimize
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -35, 0, 17)
+close.BackgroundColor3 = ELEMENT
+close.Text = "×"
+close.TextColor3 = GRAY
+close.Font = Enum.Font.SourceSans
+close.TextSize = 22
+close.BorderSizePixel = 0
+close.Parent = topBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = close
+
+--------------------------------------------------
+-- TAB BAR
+--------------------------------------------------
+
+local tabs = Instance.new("Frame")
+tabs.Size = UDim2.new(1, -30, 0, 38)
+tabs.Position = UDim2.new(0, 15, 0, 68)
+tabs.BackgroundColor3 = PANEL
+tabs.BorderSizePixel = 0
+tabs.Parent = window
+
+local tabsCorner = Instance.new("UICorner")
+tabsCorner.CornerRadius = UDim.new(0, 10)
+tabsCorner.Parent = tabs
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabLayout.Padding = UDim.new(0, 4)
+tabLayout.Parent = tabs
+
+local function createTab(text)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.25, -4, 1, -6)
+	button.BackgroundColor3 = ELEMENT
+	button.Text = text
+	button.TextColor3 = GRAY
+	button.Font = Enum.Font.SourceSansBold
+	button.TextSize = 13
+	button.BorderSizePixel = 0
+	button.Parent = tabs
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = object
-end
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = button
 
---// TITLE
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -50, 0, 40)
-title.Position = UDim2.new(0, 10, 0, 5)
-title.BackgroundTransparency = 1
-title.Text = "PLAYMEGAMARBLE"
-title.TextColor3 = RED
-title.Font = Enum.Font.SourceSansBold
-title.TextScaled = true
-title.Parent = menu
-
---// MINIMIZE
-local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 35, 0, 35)
-minimize.Position = UDim2.new(1, -42, 0, 7)
-minimize.Text = "-"
-style(minimize)
-minimize.Parent = menu
-
---// REOPEN BUTTON
-local reopen = Instance.new("TextButton")
-reopen.Size = UDim2.new(0, 80, 0, 40)
-reopen.Position = UDim2.new(0, 10, 0.5, -20)
-reopen.Text = "MENU"
-style(reopen)
-reopen.Visible = false
-reopen.Parent = gui
-
---// NAVIGATION
-local navigation = Instance.new("Frame")
-navigation.Size = UDim2.new(1, -20, 0, 40)
-navigation.Position = UDim2.new(0, 10, 0, 50)
-navigation.BackgroundTransparency = 1
-navigation.Parent = menu
-
-local function makeTab(text, position)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0.25, -5, 1, 0)
-	button.Position = position
-	button.Text = text
-	style(button)
-	button.Parent = navigation
 	return button
 end
 
-local homeTab = makeTab("HOME", UDim2.new(0, 0, 0, 0))
-local miscTab = makeTab("MISC", UDim2.new(0.25, 2.5, 0, 0))
-local creditsTab = makeTab("CREDITS", UDim2.new(0.5, 5, 0, 0))
-local antiTab = makeTab("ANTI", UDim2.new(0.75, 7.5, 0, 0))
+local homeTab = createTab("HOME")
+local miscTab = createTab("MISC")
+local creditsTab = createTab("CREDITS")
+local antiTab = createTab("ANTI")
 
---// PAGE CREATOR
-local function makePage()
+--------------------------------------------------
+-- CONTENT
+--------------------------------------------------
+
+local content = Instance.new("ScrollingFrame")
+content.Size = UDim2.new(1, -30, 1, -125)
+content.Position = UDim2.new(0, 15, 0, 115)
+content.BackgroundTransparency = 1
+content.BorderSizePixel = 0
+content.ScrollBarThickness = 3
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.Parent = window
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 8)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = content
+
+local padding = Instance.new("UIPadding")
+padding.PaddingBottom = UDim.new(0, 15)
+padding.Parent = content
+
+--------------------------------------------------
+-- PAGE SYSTEM
+--------------------------------------------------
+
+local pages = {}
+
+local function createPage()
 	local page = Instance.new("Frame")
-	page.Size = UDim2.new(1, -20, 1, -105)
-	page.Position = UDim2.new(0, 10, 0, 100)
+	page.Size = UDim2.new(1, 0, 0, 0)
+	page.AutomaticSize = Enum.AutomaticSize.Y
 	page.BackgroundTransparency = 1
 	page.Visible = false
-	page.Parent = menu
+	page.Parent = content
+
+	local pageLayout = Instance.new("UIListLayout")
+	pageLayout.Padding = UDim.new(0, 8)
+	pageLayout.Parent = page
+
+	table.insert(pages, page)
+
 	return page
 end
 
-local homePage = makePage()
-local miscPage = makePage()
-local creditsPage = makePage()
-local antiPage = makePage()
+local homePage = createPage()
+local miscPage = createPage()
+local creditsPage = createPage()
+local antiPage = createPage()
 
-homePage.Visible = true
+--------------------------------------------------
+-- SECTION
+--------------------------------------------------
 
---// BUTTON CREATOR
-local function makeButton(parent, text, y)
+local function createSection(parent, text)
+	local section = Instance.new("TextLabel")
+	section.Size = UDim2.new(1, 0, 0, 28)
+	section.BackgroundTransparency = 1
+	section.Text = text
+	section.TextColor3 = GRAY
+	section.Font = Enum.Font.SourceSansBold
+	section.TextSize = 13
+	section.TextXAlignment = Enum.TextXAlignment.Left
+	section.Parent = parent
+
+	return section
+end
+
+--------------------------------------------------
+-- BUTTON
+--------------------------------------------------
+
+local function createButton(parent, text)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, 0, 0, 40)
-	button.Position = UDim2.new(0, 0, 0, y)
+	button.Size = UDim2.new(1, 0, 0, 44)
+	button.BackgroundColor3 = ELEMENT
 	button.Text = text
-	style(button)
+	button.TextColor3 = WHITE
+	button.Font = Enum.Font.SourceSans
+	button.TextSize = 16
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.BorderSizePixel = 0
+	button.AutoButtonColor = false
 	button.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = button
+
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 16)
+	pad.Parent = button
+
+	button.MouseEnter:Connect(function()
+		button.BackgroundColor3 = HOVER
+	end)
+
+	button.MouseLeave:Connect(function()
+		button.BackgroundColor3 = ELEMENT
+	end)
+
 	return button
 end
 
---// TEXTBOX CREATOR
-local function makeBox(parent, placeholder, y)
+--------------------------------------------------
+-- INPUT
+--------------------------------------------------
+
+local function createInput(parent, placeholder)
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.new(0.55, 0, 0, 40)
-	box.Position = UDim2.new(0, 0, 0, y)
+	box.Size = UDim2.new(1, 0, 0, 44)
+	box.BackgroundColor3 = ELEMENT
 	box.PlaceholderText = placeholder
-	box.Text = ""
-	style(box)
+	box.PlaceholderColor3 = GRAY
+	box.TextColor3 = WHITE
+	box.Font = Enum.Font.SourceSans
+	box.TextSize = 16
+	box.TextXAlignment = Enum.TextXAlignment.Left
+	box.BorderSizePixel = 0
+	box.ClearTextOnFocus = false
 	box.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = box
+
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 16)
+	pad.Parent = box
+
 	return box
 end
 
---==================================================
--- HOME
---==================================================
+--------------------------------------------------
+-- STAT
+--------------------------------------------------
 
-local walkLabel = Instance.new("TextLabel")
-walkLabel.Size = UDim2.new(0.4, 0, 0, 40)
-walkLabel.Position = UDim2.new(0.6, 0, 0, 0)
-walkLabel.Text = "WalkSpeed"
-walkLabel.BackgroundTransparency = 1
-walkLabel.TextColor3 = WHITE
-walkLabel.Font = Enum.Font.SourceSansBold
-walkLabel.TextScaled = true
-walkLabel.Parent = homePage
+local function createStat(parent, name, value)
+	local stat = Instance.new("Frame")
+	stat.Size = UDim2.new(1, 0, 0, 80)
+	stat.BackgroundColor3 = Color3.fromRGB(30, 48, 42)
+	stat.BorderSizePixel = 0
+	stat.Parent = parent
 
-local walkBox = makeBox(homePage, "Speed", 45)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = stat
 
-local walkSet = makeButton(homePage, "SET WALKSPEED", 90)
+	local statName = Instance.new("TextLabel")
+	statName.Size = UDim2.new(0.5, 0, 0, 25)
+	statName.Position = UDim2.new(0, 15, 0, 10)
+	statName.BackgroundTransparency = 1
+	statName.Text = name
+	statName.TextColor3 = WHITE
+	statName.Font = Enum.Font.SourceSansBold
+	statName.TextSize = 16
+	statName.TextXAlignment = Enum.TextXAlignment.Left
+	statName.Parent = stat
 
-local jumpBox = makeBox(homePage, "JumpPower", 140)
+	local statValue = Instance.new("TextLabel")
+	statValue.Size = UDim2.new(0.5, -15, 0, 25)
+	statValue.Position = UDim2.new(0.5, 0, 0, 10)
+	statValue.BackgroundTransparency = 1
+	statValue.Text = value
+	statValue.TextColor3 = GREEN
+	statValue.Font = Enum.Font.SourceSansBold
+	statValue.TextSize = 15
+	statValue.TextXAlignment = Enum.TextXAlignment.Right
+	statValue.Parent = stat
 
-local jumpSet = makeButton(homePage, "SET JUMPPOWER", 185)
+	return statValue
+end
 
-local infiniteJumpButton = makeButton(
+--------------------------------------------------
+-- HOME PAGE
+--------------------------------------------------
+
+createSection(homePage, "PLAYER")
+
+local speedStat = createStat(
 	homePage,
-	"INFINITE JUMP: OFF",
-	235
+	"WalkSpeed",
+	"16"
 )
 
---==================================================
--- MISC
---==================================================
+local walkInput = createInput(homePage, "WalkSpeed")
 
-local flyButton = makeButton(miscPage, "FLY: OFF", 0)
+local walkSet = createButton(homePage, "Set WalkSpeed")
 
-local flySpeedBox = makeBox(miscPage, "Fly Speed", 45)
+local jumpInput = createInput(homePage, "JumpPower")
 
-local espButton = makeButton(miscPage, "ESP: OFF", 90)
+local jumpSet = createButton(homePage, "Set JumpPower")
 
-local noclipButton = makeButton(miscPage, "NOCLIP: OFF", 135)
+local infiniteButton =
+	createButton(homePage, "Infinite Jump    OFF")
 
-local walkFlingButton = makeButton(miscPage, "WALK FLING: OFF", 180)
+--------------------------------------------------
+-- MISC PAGE
+--------------------------------------------------
 
---==================================================
--- CREDITS
---==================================================
+createSection(miscPage, "MOVEMENT")
 
-local credits = Instance.new("TextLabel")
-credits.Size = UDim2.new(1, 0, 1, 0)
-credits.BackgroundTransparency = 1
-credits.Text = "Made by Playmegamarble\n\nwith the ideas"
-credits.TextColor3 = RED
-credits.Font = Enum.Font.SourceSansBold
-credits.TextScaled = true
-credits.Parent = creditsPage
+local flyButton =
+	createButton(miscPage, "Fly    OFF")
 
---==================================================
--- ANTI
---==================================================
+local flyInput =
+	createInput(miscPage, "Fly Speed")
 
-local antiFlingButton = makeButton(
-	antiPage,
-	"ANTI FLING: OFF",
-	0
-)
+local noclipButton =
+	createButton(miscPage, "Noclip    OFF")
 
---==================================================
--- PAGE SWITCHING
---==================================================
+local walkFlingButton =
+	createButton(miscPage, "Walk Fling    OFF")
 
-local function showPage(page)
-	homePage.Visible = false
-	miscPage.Visible = false
-	creditsPage.Visible = false
-	antiPage.Visible = false
+createSection(miscPage, "VISUAL")
+
+local espButton =
+	createButton(miscPage, "ESP    OFF")
+
+--------------------------------------------------
+-- CREDITS PAGE
+--------------------------------------------------
+
+createSection(creditsPage, "CREDITS")
+
+local creditBox = Instance.new("Frame")
+creditBox.Size = UDim2.new(1, 0, 0, 120)
+creditBox.BackgroundColor3 = ELEMENT
+creditBox.BorderSizePixel = 0
+creditBox.Parent = creditsPage
+
+local creditCorner = Instance.new("UICorner")
+creditCorner.CornerRadius = UDim.new(0, 12)
+creditCorner.Parent = creditBox
+
+local creditText = Instance.new("TextLabel")
+creditText.Size = UDim2.new(1, -30, 1, -20)
+creditText.Position = UDim2.new(0, 15, 0, 10)
+creditText.BackgroundTransparency = 1
+creditText.Text = "Made by Playmegamarble\n\nwith the ideas"
+creditText.TextColor3 = GREEN
+creditText.Font = Enum.Font.SourceSansBold
+creditText.TextSize = 18
+creditText.TextWrapped = true
+creditText.Parent = creditBox
+
+--------------------------------------------------
+-- ANTI PAGE
+--------------------------------------------------
+
+createSection(antiPage, "ANTI")
+
+local antiButton =
+	createButton(antiPage, "Anti Fling    OFF")
+
+local antiDescription = Instance.new("TextLabel")
+antiDescription.Size = UDim2.new(1, 0, 0, 45)
+antiDescription.BackgroundTransparency = 1
+antiDescription.Text = "Stops other players from physically colliding with you."
+antiDescription.TextColor3 = GRAY
+antiDescription.Font = Enum.Font.SourceSans
+antiDescription.TextSize = 14
+antiDescription.TextWrapped = true
+antiDescription.TextXAlignment = Enum.TextXAlignment.Left
+antiDescription.Parent = antiPage
+
+--------------------------------------------------
+-- SHOW PAGE
+--------------------------------------------------
+
+local function showPage(page, selectedTab)
+	for _, p in ipairs(pages) do
+		p.Visible = false
+	end
+
+	homeTab.TextColor3 = GRAY
+	miscTab.TextColor3 = GRAY
+	creditsTab.TextColor3 = GRAY
+	antiTab.TextColor3 = GRAY
 
 	page.Visible = true
+	selectedTab.TextColor3 = GREEN
+
+	content.CanvasPosition = Vector2.zero
 end
 
 homeTab.MouseButton1Click:Connect(function()
-	showPage(homePage)
+	showPage(homePage, homeTab)
 end)
 
 miscTab.MouseButton1Click:Connect(function()
-	showPage(miscPage)
+	showPage(miscPage, miscTab)
 end)
 
 creditsTab.MouseButton1Click:Connect(function()
-	showPage(creditsPage)
+	showPage(creditsPage, creditsTab)
 end)
 
 antiTab.MouseButton1Click:Connect(function()
-	showPage(antiPage)
+	showPage(antiPage, antiTab)
 end)
 
---==================================================
--- CHARACTER
---==================================================
+showPage(homePage, homeTab)
+
+--------------------------------------------------
+-- CHARACTER HELPERS
+--------------------------------------------------
 
 local function getCharacter()
-	return player.Character or player.CharacterAdded:Wait()
+	return player.Character
 end
 
 local function getHumanoid()
 	local character = getCharacter()
-	return character:FindFirstChildOfClass("Humanoid")
+	return character and character:FindFirstChildOfClass("Humanoid")
 end
 
 local function getRoot()
 	local character = getCharacter()
-	return character:FindFirstChild("HumanoidRootPart")
+	return character and character:FindFirstChild("HumanoidRootPart")
 end
 
---==================================================
--- WALKSPEED
---==================================================
+--------------------------------------------------
+-- WALK SPEED
+--------------------------------------------------
 
 walkSet.MouseButton1Click:Connect(function()
-	local number = tonumber(walkBox.Text)
+	local value = tonumber(walkInput.Text)
 
-	if number then
-		walkSpeed = number
+	if value then
+		walkSpeed = value
+		speedStat.Text = tostring(value)
 
 		local humanoid = getHumanoid()
+
 		if humanoid then
-			humanoid.WalkSpeed = walkSpeed
+			humanoid.WalkSpeed = value
 		end
 	end
 end)
 
---==================================================
--- JUMPPOWER
---==================================================
+--------------------------------------------------
+-- JUMP POWER
+--------------------------------------------------
 
 jumpSet.MouseButton1Click:Connect(function()
-	local number = tonumber(jumpBox.Text)
+	local value = tonumber(jumpInput.Text)
 
-	if number then
-		jumpPower = number
+	if value then
+		jumpPower = value
 
 		local humanoid = getHumanoid()
+
 		if humanoid then
 			humanoid.UseJumpPower = true
-			humanoid.JumpPower = jumpPower
+			humanoid.JumpPower = value
 		end
 	end
 end)
 
---==================================================
+--------------------------------------------------
 -- INFINITE JUMP
---==================================================
+--------------------------------------------------
 
-infiniteJumpButton.MouseButton1Click:Connect(function()
+infiniteButton.MouseButton1Click:Connect(function()
 	infiniteJump = not infiniteJump
 
-	infiniteJumpButton.Text =
-		"INFINITE JUMP: " .. (infiniteJump and "ON" or "OFF")
+	infiniteButton.Text =
+		"Infinite Jump    " ..
+		(infiniteJump and "ON" or "OFF")
 end)
 
 UserInputService.JumpRequest:Connect(function()
@@ -315,24 +547,26 @@ UserInputService.JumpRequest:Connect(function()
 		local humanoid = getHumanoid()
 
 		if humanoid then
-			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			humanoid:ChangeState(
+				Enum.HumanoidStateType.Jumping
+			)
 		end
 	end
 end)
 
---==================================================
+--------------------------------------------------
 -- FLY
---==================================================
+--------------------------------------------------
 
 local flyConnection
 
-local function startFlying()
+local function startFly()
 	if flying then
 		return
 	end
 
 	flying = true
-	flyButton.Text = "FLY: ON"
+	flyButton.Text = "Fly    ON"
 
 	local humanoid = getHumanoid()
 
@@ -345,31 +579,24 @@ local function startFlying()
 			return
 		end
 
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-
-		if not root then
-			return
-		end
-
+		local root = getRoot()
+		local humanoid = getHumanoid()
 		local camera = workspace.CurrentCamera
 
-		if not camera then
+		if not root or not humanoid or not camera then
 			return
 		end
 
-		local moveDirection = humanoid and humanoid.MoveDirection
-
-		if moveDirection and moveDirection.Magnitude > 0 then
-			local lookDirection = camera.CFrame.LookVector
+		if humanoid.MoveDirection.Magnitude > 0 then
+			local direction = camera.CFrame.LookVector
 
 			root.AssemblyLinearVelocity =
-				lookDirection.Unit * flySpeed
+				direction.Unit * flySpeed
 
 			root.CFrame =
 				CFrame.lookAt(
 					root.Position,
-					root.Position + lookDirection
+					root.Position + direction
 				)
 		else
 			root.AssemblyLinearVelocity = Vector3.zero
@@ -377,9 +604,9 @@ local function startFlying()
 	end)
 end
 
-local function stopFlying()
+local function stopFly()
 	flying = false
-	flyButton.Text = "FLY: OFF"
+	flyButton.Text = "Fly    OFF"
 
 	if flyConnection then
 		flyConnection:Disconnect()
@@ -401,53 +628,71 @@ end
 
 flyButton.MouseButton1Click:Connect(function()
 	if flying then
-		stopFlying()
+		stopFly()
 	else
-		startFlying()
+		startFly()
 	end
 end)
 
-flySpeedBox.FocusLost:Connect(function()
-	local number = tonumber(flySpeedBox.Text)
+flyInput.FocusLost:Connect(function()
+	local value = tonumber(flyInput.Text)
 
-	if number then
-		flySpeed = number
+	if value then
+		flySpeed = value
 	end
 end)
 
---==================================================
+--------------------------------------------------
 -- ESP
---==================================================
+--------------------------------------------------
 
 local function getHealthColor(humanoid)
 	if humanoid.Health <= 0 then
-		return Color3.fromRGB(170, 0, 255)
+		return PURPLE
 	end
 
-	local percentage =
+	local percent =
 		humanoid.Health / humanoid.MaxHealth
 
-	if percentage <= 0.25 then
-		return Color3.fromRGB(255, 0, 0)
-	elseif percentage <= 0.50 then
-		return Color3.fromRGB(255, 255, 0)
+	if percent <= 0.25 then
+		return RED
+	elseif percent <= 0.50 then
+		return YELLOW
 	else
-		return Color3.fromRGB(0, 255, 0)
+		return GREEN
 	end
 end
 
-local function addESP(targetPlayer)
-	if targetPlayer == player then
+local function removeESP(target)
+	local object = espObjects[target]
+
+	if not object then
 		return
 	end
 
-	local character = targetPlayer.Character
+	if object.connection then
+		object.connection:Disconnect()
+	end
+
+	if object.highlight then
+		object.highlight:Destroy()
+	end
+
+	if object.billboard then
+		object.billboard:Destroy()
+	end
+
+	espObjects[target] = nil
+end
+
+local function addESP(target)
+	if target == player or espObjects[target] then
+		return
+	end
+
+	local character = target.Character
 
 	if not character then
-		return
-	end
-
-	if espObjects[targetPlayer] then
 		return
 	end
 
@@ -468,7 +713,7 @@ local function addESP(targetPlayer)
 	highlight.Parent = character
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 220, 0, 50)
+	billboard.Size = UDim2.new(0, 220, 0, 45)
 	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = root
@@ -477,7 +722,7 @@ local function addESP(targetPlayer)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.SourceSansBold
-	label.TextScaled = true
+	label.TextSize = 16
 	label.TextStrokeTransparency = 0
 	label.Parent = billboard
 
@@ -486,25 +731,28 @@ local function addESP(targetPlayer)
 			return
 		end
 
-		local health =
-			math.max(0, math.floor(humanoid.Health))
+		local health = math.max(
+			0,
+			math.floor(humanoid.Health)
+		)
 
-		local maxHealth =
-			math.max(1, math.floor(humanoid.MaxHealth))
+		local maxHealth = math.max(
+			1,
+			math.floor(humanoid.MaxHealth)
+		)
 
-		local healthColor =
-			getHealthColor(humanoid)
+		local color = getHealthColor(humanoid)
 
 		label.Text =
-			targetPlayer.Name ..
+			target.Name ..
 			" [" ..
 			health ..
 			"/" ..
 			maxHealth ..
 			"]"
 
-		label.TextColor3 = healthColor
-		highlight.FillColor = healthColor
+		label.TextColor3 = color
+		highlight.FillColor = color
 	end
 
 	update()
@@ -512,50 +760,28 @@ local function addESP(targetPlayer)
 	local connection =
 		humanoid.HealthChanged:Connect(update)
 
-	espObjects[targetPlayer] = {
+	espObjects[target] = {
 		highlight = highlight,
 		billboard = billboard,
 		connection = connection
 	}
 end
 
-local function removeESP(targetPlayer)
-	local object = espObjects[targetPlayer]
-
-	if not object then
-		return
-	end
-
-	if object.connection then
-		object.connection:Disconnect()
-	end
-
-	if object.highlight then
-		object.highlight:Destroy()
-	end
-
-	if object.billboard then
-		object.billboard:Destroy()
-	end
-
-	espObjects[targetPlayer] = nil
-end
-
 local function enableESP()
 	espEnabled = true
-	espButton.Text = "ESP: ON"
+	espButton.Text = "ESP    ON"
 
-	for _, targetPlayer in ipairs(Players:GetPlayers()) do
-		addESP(targetPlayer)
+	for _, target in ipairs(Players:GetPlayers()) do
+		addESP(target)
 	end
 end
 
 local function disableESP()
 	espEnabled = false
-	espButton.Text = "ESP: OFF"
+	espButton.Text = "ESP    OFF"
 
-	for targetPlayer in pairs(espObjects) do
-		removeESP(targetPlayer)
+	for target in pairs(espObjects) do
+		removeESP(target)
 	end
 end
 
@@ -567,51 +793,52 @@ espButton.MouseButton1Click:Connect(function()
 	end
 end)
 
-Players.PlayerAdded:Connect(function(targetPlayer)
-	targetPlayer.CharacterAdded:Connect(function()
+Players.PlayerAdded:Connect(function(target)
+	target.CharacterAdded:Connect(function()
 		task.wait(1)
 
 		if espEnabled then
-			addESP(targetPlayer)
+			addESP(target)
 		end
 	end)
 end)
 
-Players.PlayerRemoving:Connect(function(targetPlayer)
-	removeESP(targetPlayer)
+Players.PlayerRemoving:Connect(function(target)
+	removeESP(target)
 end)
 
---==================================================
+--------------------------------------------------
 -- NOCLIP
---==================================================
+--------------------------------------------------
 
 noclipButton.MouseButton1Click:Connect(function()
 	noclip = not noclip
 
 	noclipButton.Text =
-		"NOCLIP: " .. (noclip and "ON" or "OFF")
+		"Noclip    " ..
+		(noclip and "ON" or "OFF")
 end)
 
---==================================================
+--------------------------------------------------
 -- WALK FLING
---==================================================
+--------------------------------------------------
 
 walkFlingButton.MouseButton1Click:Connect(function()
 	walkFling = not walkFling
 
 	walkFlingButton.Text =
-		"WALK FLING: " .. (walkFling and "ON" or "OFF")
+		"Walk Fling    " ..
+		(walkFling and "ON" or "OFF")
 end)
 
---==================================================
+--------------------------------------------------
 -- ANTI FLING
---==================================================
+--------------------------------------------------
 
 local function updateAntiFling()
-	for _, targetPlayer in ipairs(Players:GetPlayers()) do
-		if targetPlayer ~= player then
-
-			local character = targetPlayer.Character
+	for _, target in ipairs(Players:GetPlayers()) do
+		if target ~= player then
+			local character = target.Character
 
 			if character then
 				for _, part in ipairs(character:GetDescendants()) do
@@ -624,184 +851,32 @@ local function updateAntiFling()
 	end
 end
 
-antiFlingButton.MouseButton1Click:Connect(function()
+antiButton.MouseButton1Click:Connect(function()
 	antiFling = not antiFling
 
-	antiFlingButton.Text =
-		"ANTI FLING: " .. (antiFling and "ON" or "OFF")
+	antiButton.Text =
+		"Anti Fling    " ..
+		(antiFling and "ON" or "OFF")
 
 	updateAntiFling()
 end)
 
---==================================================
--- MINIMIZE
---==================================================
-
-minimize.MouseButton1Click:Connect(function()
-	menu.Visible = false
-	reopen.Visible = true
-end)
-
-reopen.MouseButton1Click:Connect(function()
-	menu.Visible = true
-	reopen.Visible = false
-end)
-
---==================================================
--- DRAGGING
---==================================================
-
-local dragging = false
-local dragStart
-local startPosition
-
-local function updateDrag(input)
-	local delta = input.Position - dragStart
-
-	menu.Position =
-		UDim2.new(
-			startPosition.X.Scale,
-			startPosition.X.Offset + delta.X,
-			startPosition.Y.Scale,
-			startPosition.Y.Offset + delta.Y
-		)
-end
-
-title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = true
-		dragStart = input.Position
-		startPosition = menu.Position
-	end
-end)
-
-title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging then
-		if input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch then
-
-			updateDrag(input)
-		end
-	end
-end)
-
---==================================================
--- MAIN HEARTBEAT
---==================================================
+--------------------------------------------------
+-- MAIN LOOP
+--------------------------------------------------
 
 RunService.Heartbeat:Connect(function()
-	local character = player.Character
+	local character = getCharacter()
 
-	if character then
-		local humanoid =
-			character:FindFirstChildOfClass("Humanoid")
-
-		if humanoid then
-			humanoid.WalkSpeed = walkSpeed
-			humanoid.UseJumpPower = true
-			humanoid.JumpPower = jumpPower
-		end
-
-		-- NOCLIP
-		if noclip then
-			for _, part in ipairs(character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
-			end
-		end
-
-		-- WALK FLING + VERY FAST SPIN
-		if walkFling then
-			local root =
-				character:FindFirstChild("HumanoidRootPart")
-
-			if root then
-				-- Extremely fast spinning
-				root.AssemblyAngularVelocity =
-					Vector3.new(0, 100000, 0)
-
-				for _, targetPlayer in ipairs(Players:GetPlayers()) do
-					if targetPlayer ~= player then
-
-						local targetCharacter =
-							targetPlayer.Character
-
-						local targetRoot =
-							targetCharacter and
-							targetCharacter:FindFirstChild("HumanoidRootPart")
-
-						if targetRoot then
-							local distance =
-								(root.Position - targetRoot.Position).Magnitude
-
-							if distance <= 4 then
-								local now = os.clock()
-
-								if not flingCooldown[targetPlayer]
-									or now - flingCooldown[targetPlayer] > 0.5 then
-
-									flingCooldown[targetPlayer] = now
-
-									local direction =
-										(targetRoot.Position - root.Position)
-
-									if direction.Magnitude > 0 then
-										direction =
-											direction.Unit
-									else
-										direction =
-											Vector3.new(1, 0, 0)
-									end
-
-									targetRoot.AssemblyLinearVelocity =
-										direction * 100 +
-										Vector3.new(0, 60, 0)
-								end
-							end
-						end
-					end
-				end
-			end
-		else
-			local root =
-				character:FindFirstChild("HumanoidRootPart")
-
-			if root then
-				root.AssemblyAngularVelocity = Vector3.zero
-			end
-		end
+	if not character then
+		return
 	end
-
-	-- ANTI FLING
-	if antiFling then
-		updateAntiFling()
-	end
-end)
-
---==================================================
--- RESPAWN
---==================================================
-
-player.CharacterAdded:Connect(function(character)
-	task.wait(1)
 
 	local humanoid =
 		character:FindFirstChildOfClass("Humanoid")
+
+	local root =
+		character:FindFirstChild("HumanoidRootPart")
 
 	if humanoid then
 		humanoid.WalkSpeed = walkSpeed
@@ -809,17 +884,188 @@ player.CharacterAdded:Connect(function(character)
 		humanoid.JumpPower = jumpPower
 	end
 
-	if espEnabled then
-		task.wait(1)
+	------------------------------------------------
+	-- NOCLIP
+	------------------------------------------------
 
-		for _, targetPlayer in ipairs(Players:GetPlayers()) do
-			if targetPlayer ~= player then
-				addESP(targetPlayer)
+	if noclip then
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
 			end
 		end
 	end
 
+	------------------------------------------------
+	-- WALK FLING
+	------------------------------------------------
+
+	if walkFling and root then
+
+		-- Extremely fast spinning
+		root.AssemblyAngularVelocity =
+			Vector3.new(0, 100000, 0)
+
+		for _, target in ipairs(Players:GetPlayers()) do
+			if target ~= player then
+
+				local targetCharacter =
+					target.Character
+
+				local targetRoot =
+					targetCharacter and
+					targetCharacter:FindFirstChild(
+						"HumanoidRootPart"
+					)
+
+				if targetRoot then
+					local distance =
+						(root.Position -
+							targetRoot.Position).Magnitude
+
+					if distance <= 4 then
+						local now = os.clock()
+
+						if not flingCooldown[target]
+							or now -
+							flingCooldown[target] > 0.5 then
+
+							flingCooldown[target] = now
+
+							local direction =
+								targetRoot.Position -
+								root.Position
+
+							if direction.Magnitude > 0 then
+								direction =
+									direction.Unit
+							else
+								direction =
+									Vector3.new(1, 0, 0)
+							end
+
+							targetRoot.AssemblyLinearVelocity =
+								direction * 100 +
+								Vector3.new(0, 60, 0)
+						end
+					end
+				end
+			end
+		end
+	else
+		if root then
+			root.AssemblyAngularVelocity =
+				Vector3.zero
+		end
+	end
+
+	------------------------------------------------
+	-- ANTI FLING
+	------------------------------------------------
+
 	if antiFling then
 		updateAntiFling()
+	end
+end)
+
+--------------------------------------------------
+-- RESPAWN
+--------------------------------------------------
+
+player.CharacterAdded:Connect(function()
+	task.wait(1)
+
+	local humanoid = getHumanoid()
+
+	if humanoid then
+		humanoid.WalkSpeed = walkSpeed
+		humanoid.UseJumpPower = true
+		humanoid.JumpPower = jumpPower
+	end
+
+	if antiFling then
+		updateAntiFling()
+	end
+end)
+
+--------------------------------------------------
+-- MINIMIZE / CLOSE
+--------------------------------------------------
+
+local reopen = Instance.new("TextButton")
+reopen.Size = UDim2.new(0, 90, 0, 42)
+reopen.Position = UDim2.new(0, 15, 0.5, -21)
+reopen.BackgroundColor3 = PANEL
+reopen.Text = "MENU"
+reopen.TextColor3 = WHITE
+reopen.Font = Enum.Font.SourceSansBold
+reopen.TextSize = 16
+reopen.BorderSizePixel = 0
+reopen.Visible = false
+reopen.Parent = gui
+
+local reopenCorner = Instance.new("UICorner")
+reopenCorner.CornerRadius = UDim.new(0, 10)
+reopenCorner.Parent = reopen
+
+minimize.MouseButton1Click:Connect(function()
+	window.Visible = false
+	reopen.Visible = true
+end)
+
+reopen.MouseButton1Click:Connect(function()
+	window.Visible = true
+	reopen.Visible = false
+end)
+
+close.MouseButton1Click:Connect(function()
+	window.Visible = false
+	reopen.Visible = true
+end)
+
+--------------------------------------------------
+-- DRAGGING
+--------------------------------------------------
+
+local dragging = false
+local dragStart
+local startPosition
+
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = window.Position
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local delta =
+			input.Position - dragStart
+
+		window.Position =
+			UDim2.new(
+				startPosition.X.Scale,
+				startPosition.X.Offset + delta.X,
+				startPosition.Y.Scale,
+				startPosition.Y.Offset + delta.Y
+			)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
 	end
 end)
