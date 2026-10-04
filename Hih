@@ -1649,64 +1649,24 @@ end
 -- SURFACE CAMERA
 local surfaceCameraActive = false
 
-local cameraYaw = 0
-local cameraPitch = math.rad(-10)
-
-local CAMERA_DISTANCE = 12
-local CAMERA_HEIGHT = 3
-local CAMERA_SENSITIVITY = 0.004
-
-local rightMouseDown = false
-local touchStartTranslation = Vector2.zero
-
 local function startSurfaceCamera(root)
     if not root then return end
 
     surfaceCameraActive = true
-    cameraYaw = 0
-    cameraPitch = math.rad(-10)
 
     local cam = workspace.CurrentCamera
-    cam.CameraType = Enum.CameraType.Scriptable
-    cam.CameraSubject = root
 
-    RunService:UnbindFromRenderStep(SURFACE_CAMERA_BIND)
+    -- Keep Roblox's normal camera
+    cam.CameraType = Enum.CameraType.Custom
 
-    RunService:BindToRenderStep(
-        SURFACE_CAMERA_BIND,
-        Enum.RenderPriority.Camera.Value,
-        function()
-            if not surfaceCameraActive or not root or not root.Parent then
-                return
-            end
-
-            local cam = workspace.CurrentCamera
-
-            -- Keep the camera aligned with the surface
-            local surfaceCFrame = root.CFrame
-
-            -- Rotate camera with mouse/touch
-            local cameraRotation =
-                CFrame.Angles(cameraPitch, cameraYaw, 0)
-
-            local cameraCFrame =
-                surfaceCFrame
-                * cameraRotation
-                * CFrame.new(0, CAMERA_HEIGHT, CAMERA_DISTANCE)
-
-            cam.CFrame = cameraCFrame
-            cam.Focus = CFrame.new(root.Position)
-        end
-    )
+    local humanoid = root.Parent:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        cam.CameraSubject = humanoid
+    end
 end
 
 local function stopSurfaceCamera()
     surfaceCameraActive = false
-    rightMouseDown = false
-
-    RunService:UnbindFromRenderStep(SURFACE_CAMERA_BIND)
-
-    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
     local cam = workspace.CurrentCamera
     cam.CameraType = Enum.CameraType.Custom
@@ -1720,86 +1680,6 @@ local function stopSurfaceCamera()
         end
     end
 end
-
--- PC CAMERA CONTROL
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if not surfaceCameraActive then return end
-
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        rightMouseDown = true
-        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        rightMouseDown = false
-
-        if not surfaceCameraActive then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        end
-    end
-end)
-
-RunService:BindToRenderStep(
-    "SurfaceCameraMouse",
-    Enum.RenderPriority.Input.Value,
-    function()
-        if not surfaceCameraActive or not rightMouseDown then
-            return
-        end
-
-        local delta = UserInputService:GetMouseDelta()
-
-        cameraYaw = cameraYaw - delta.X * CAMERA_SENSITIVITY
-        cameraPitch = cameraPitch - delta.Y * CAMERA_SENSITIVITY
-
-        -- Prevent the camera from flipping upside down
-        cameraPitch = math.clamp(
-            cameraPitch,
-            math.rad(-80),
-            math.rad(80)
-        )
-    end
-)
-
--- PHONE / TABLET CAMERA CONTROL
-UserInputService.TouchPan:Connect(function(
-    touchPositions,
-    totalTranslation,
-    velocity,
-    state,
-    gameProcessed
-)
-    if gameProcessed then return end
-    if not surfaceCameraActive then return end
-
-    if state == Enum.UserInputState.Begin then
-        touchStartTranslation = totalTranslation
-
-    elseif state == Enum.UserInputState.Change
-        or state == Enum.UserInputState.End then
-
-        local movement =
-            totalTranslation - touchStartTranslation
-
-        cameraYaw =
-            cameraYaw - movement.X * CAMERA_SENSITIVITY
-
-        cameraPitch =
-            cameraPitch - movement.Y * CAMERA_SENSITIVITY
-
-        cameraPitch = math.clamp(
-            cameraPitch,
-            math.rad(-80),
-            math.rad(80)
-        )
-
-        touchStartTranslation = totalTranslation
-    end
-end)
-
 --==================================================
 -- SURFACE MOVEMENT
 --==================================================
