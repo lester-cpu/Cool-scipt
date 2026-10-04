@@ -1,0 +1,291 @@
+-- WALK ON WALLS
+-- LocalScript
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+local enabled = false
+local character
+local humanoid
+local root
+
+local normal = Vector3.new(0, 1, 0)
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "WalkOnWallsGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(230, 125)
+frame.Position = UDim2.new(0.5, -115, 0.5, -62)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.BackgroundTransparency = 1
+title.Text = "WALK ON WALLS"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 19
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -30, 0, 50)
+button.Position = UDim2.new(0, 15, 0, 60)
+button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+button.Text = "OFF"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 18
+button.Font = Enum.Font.GothamBold
+button.Parent = frame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = button
+
+--==================================================
+-- CHARACTER
+--==================================================
+
+local function setupCharacter(char)
+	character = char
+	humanoid = char:WaitForChild("Humanoid")
+	root = char:WaitForChild("HumanoidRootPart")
+
+	normal = Vector3.new(0, 1, 0)
+end
+
+setupCharacter(player.Character or player.CharacterAdded:Wait())
+
+player.CharacterAdded:Connect(function(char)
+	setupCharacter(char)
+
+	if enabled then
+		humanoid.AutoRotate = false
+	end
+end)
+
+--==================================================
+-- SURFACE DETECTION
+--==================================================
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local function getSurfaceNormal()
+	if not character or not root then
+		return Vector3.new(0, 1, 0)
+	end
+
+	rayParams.FilterDescendantsInstances = {character}
+
+	local position = root.Position
+	local directions = {
+		Vector3.new(0, -1, 0),
+		Vector3.new(0, 1, 0),
+		Vector3.new(1, 0, 0),
+		Vector3.new(-1, 0, 0),
+		Vector3.new(0, 0, 1),
+		Vector3.new(0, 0, -1)
+	}
+
+	local bestNormal = Vector3.new(0, 1, 0)
+	local bestDistance = math.huge
+
+	for _, direction in ipairs(directions) do
+		local result = workspace:Raycast(
+			position,
+			direction * 4,
+			rayParams
+		)
+
+		if result and result.Instance then
+			local distance = (result.Position - position).Magnitude
+
+			if distance < bestDistance then
+				bestDistance = distance
+				bestNormal = result.Normal
+			end
+		end
+	end
+
+	return bestNormal
+end
+
+--==================================================
+-- WALL WALKING
+--==================================================
+
+local function updateWallWalking()
+	if not enabled or not character or not humanoid or not root then
+		return
+	end
+
+	normal = getSurfaceNormal()
+
+	-- Keep the character's feet against the surface
+	local gravity = workspace.Gravity
+	local force = root:FindFirstChild("WallWalkForce")
+
+	if not force then
+		force = Instance.new("VectorForce")
+		force.Name = "WallWalkForce"
+		force.RelativeTo = Enum.ActuatorRelativeTo.World
+		force.ApplyAtCenterOfMass = true
+		force.Parent = root
+	end
+
+	force.Attachment0 = root:FindFirstChild("RootAttachment")
+
+	if force.Attachment0 then
+		force.Force = normal * root.AssemblyMass * gravity
+	end
+
+	-- Make the character stand on the surface
+	local attachment = root:FindFirstChild("WallWalkOrientation")
+
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "WallWalkOrientation"
+		attachment.Parent = root
+	end
+
+	local align = root:FindFirstChild("WallWalkAlign")
+
+	if not align then
+		align = Instance.new("AlignOrientation")
+		align.Name = "WallWalkAlign"
+		align.Attachment0 = attachment
+		align.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		align.RigidityEnabled = false
+		align.Responsiveness = 20
+		align.MaxTorque = math.huge
+		align.Parent = root
+	end
+
+	local camera = workspace.CurrentCamera
+
+	if camera then
+		local look = camera.CFrame.LookVector
+
+		-- Project camera direction onto the surface
+		local forward = look - normal * look:Dot(normal)
+
+		if forward.Magnitude > 0.01 then
+			forward = forward.Unit
+
+			align.CFrame = CFrame.lookAt(
+				Vector3.zero,
+				forward,
+				normal
+			)
+		end
+	end
+end
+
+--==================================================
+-- MOVEMENT
+--==================================================
+
+local function updateMovement()
+	if not enabled or not humanoid or not root then
+		return
+	end
+
+	local camera = workspace.CurrentCamera
+
+	if not camera then
+		return
+	end
+
+	local move = humanoid.MoveDirection
+
+	if move.Magnitude > 0.01 then
+		-- Keep movement on the wall/floor
+		local projected =
+			move - normal * move:Dot(normal)
+
+		if projected.Magnitude > 0.01 then
+			humanoid:Move(projected.Unit, false)
+		end
+	end
+end
+
+--==================================================
+-- ON / OFF
+--==================================================
+
+local function turnOn()
+	enabled = true
+
+	if humanoid then
+		humanoid.AutoRotate = false
+	end
+
+	button.Text = "ON"
+	button.BackgroundColor3 = Color3.fromRGB(50, 170, 80)
+end
+
+local function turnOff()
+	enabled = false
+
+	if root then
+		local force = root:FindFirstChild("WallWalkForce")
+		if force then
+			force:Destroy()
+		end
+
+		local align = root:FindFirstChild("WallWalkAlign")
+		if align then
+			align:Destroy()
+		end
+
+		local attachment = root:FindFirstChild("WallWalkOrientation")
+		if attachment then
+			attachment:Destroy()
+		end
+	end
+
+	if humanoid then
+		humanoid.AutoRotate = true
+	end
+
+	normal = Vector3.new(0, 1, 0)
+
+	button.Text = "OFF"
+	button.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+end
+
+button.MouseButton1Click:Connect(function()
+	if enabled then
+		turnOff()
+	else
+		turnOn()
+	end
+end)
+
+--==================================================
+-- UPDATE
+--==================================================
+
+RunService.RenderStepped:Connect(function()
+	if enabled then
+		updateWallWalking()
+		updateMovement()
+	end
+end)
