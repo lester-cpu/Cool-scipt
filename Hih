@@ -900,215 +900,142 @@ local function getRoot()
 end
 
 --==================================================
--- INFINITE JUMP
---==================================================
-
-UserInputService.JumpRequest:Connect(function()
-
-	if getInfiniteJump() then
-
-		local humanoid = getHumanoid()
-
-		if humanoid then
-			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-		end
-	end
-end)
-
---==================================================
--- ESP
---==================================================
-
-local function getHealthColor(humanoid)
-
-	local health = humanoid.Health
-	local maxHealth = humanoid.MaxHealth
-
-	if health <= 0 then
-		return PURPLE
-	end
-
-	local percent = health / maxHealth
-
-	if percent > 0.50 then
-		return Color3.fromRGB(60,255,100)
-	elseif percent > 0.25 then
-		return YELLOW
-	else
-		return RED
-	end
-end
-
-local function removeESP(target)
-
-	if espObjects[target] then
-
-		for _,object in ipairs(espObjects[target]) do
-
-			if typeof(object) == "RBXScriptConnection" then
-				object:Disconnect()
-			elseif object then
-				object:Destroy()
-			end
-		end
-
-		espObjects[target] = nil
-	end
-end
-
-local function addESP(target)
-
-	if target == player then
-		return
-	end
-
-	removeESP(target)
-
-	local character = target.Character
-
-	if not character then
-		return
-	end
-
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart")
-
-	if not humanoid or not root then
-		return
-	end
-
-	local highlight = Instance.new("Highlight")
-	highlight.FillTransparency = 0.45
-	highlight.OutlineTransparency = 0
-	highlight.OutlineColor = RED
-	highlight.Parent = character
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0,180,0,35)
-	billboard.StudsOffset = Vector3.new(0,3,0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = root
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1,0,1,0)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBold
-	label.TextSize = 12
-	label.TextStrokeTransparency = 0.5
-	label.Parent = billboard
-
-	local function update()
-
-		if humanoid.Parent == nil then
-			return
-		end
-
-		local healthColor = getHealthColor(humanoid)
-
-		highlight.FillColor = healthColor
-		label.TextColor3 = healthColor
-
-		label.Text = string.format(
-			"%s [%d/%d]",
-			target.Name,
-			math.max(0,math.floor(humanoid.Health)),
-			math.floor(humanoid.MaxHealth)
-		)
-	end
-
-	local connection = RunService.Heartbeat:Connect(update)
-
-	espObjects[target] = {
-		highlight,
-		billboard,
-		connection
-	}
-
-	update()
-end
-
-local function updateESP()
-
-	if not getESP() then
-
-		for target in pairs(espObjects) do
-			removeESP(target)
-		end
-
-		return
-	end
-
-	for _,target in ipairs(Players:GetPlayers()) do
-
-		if target ~= player and not espObjects[target] then
-			addESP(target)
-		end
-	end
-end
-
-Players.PlayerAdded:Connect(function(target)
-
-	target.CharacterAdded:Connect(function()
-
-		task.wait(0.5)
-
-		if getESP() then
-			addESP(target)
-		end
-	end)
-end)
-
-Players.PlayerRemoving:Connect(function(target)
-	removeESP(target)
-end)
-
-for _,target in ipairs(Players:GetPlayers()) do
-
-	if target ~= player then
-
-		target.CharacterAdded:Connect(function()
-
-			task.wait(0.5)
-
-			if getESP() then
-				addESP(target)
-			end
-		end)
-	end
-end
-
---==================================================
--- FIXED WALK ON WALLS
+-- WALL WALK STATE
 --==================================================
 
 local wallNormal = nil
 local wallAttached = false
 local wallPart = nil
 
+local wallCameraLocal = nil
+local wallCameraActive = false
+
 local WALL_DISTANCE = 4.5
 local WALL_STICK = 7
 local WALL_SPEED = 1
 local WALL_SMOOTHNESS = 10
+local WALL_CAMERA_SMOOTHNESS = 12
+
+local WALL_CAMERA_BIND =
+	"Playmegamarble_WallCamera"
 
 local function wallAlpha(speed,dt)
 	return 1 - math.exp(-speed * dt)
 end
 
+--==================================================
+-- WALL CAMERA
+--==================================================
+
+local function startWallCamera(root)
+
+	local camera = workspace.CurrentCamera
+
+	if not camera or not root then
+		return
+	end
+
+	if not wallCameraActive then
+
+		-- Save the camera's position/orientation relative
+		-- to the character before rotating the character.
+		wallCameraLocal =
+			root.CFrame:ToObjectSpace(
+				camera.CFrame
+			)
+
+		camera.CameraType =
+			Enum.CameraType.Scriptable
+
+		wallCameraActive = true
+	end
+end
+
+local function stopWallCamera()
+
+	local camera = workspace.CurrentCamera
+
+	wallCameraActive = false
+	wallCameraLocal = nil
+
+	if camera then
+
+		camera.CameraType =
+			Enum.CameraType.Custom
+
+		local humanoid = getHumanoid()
+
+		if humanoid then
+			camera.CameraSubject = humanoid
+		end
+	end
+end
+
+RunService:BindToRenderStep(
+	WALL_CAMERA_BIND,
+	Enum.RenderPriority.Camera.Value + 1,
+	function(dt)
+
+		if not wallCameraActive
+			or not wallAttached
+			or not wallCameraLocal then
+
+			return
+		end
+
+		local camera = workspace.CurrentCamera
+		local root = getRoot()
+
+		if not camera or not root then
+			return
+		end
+
+		-- The camera follows the character's rotated
+		-- coordinate system, making the wall behave
+		-- like the floor.
+		local targetCamera =
+			root.CFrame *
+			wallCameraLocal
+
+		camera.CFrame =
+			camera.CFrame:Lerp(
+				targetCamera,
+				wallAlpha(
+					WALL_CAMERA_SMOOTHNESS,
+					dt
+				)
+			)
+
+		-- Scriptable cameras need Focus updated manually.
+		camera.Focus =
+			CFrame.new(root.Position)
+	end
+)
+
+--==================================================
+-- WALL DETECTION
+--==================================================
+
 local function getWallHit(character,root)
 
 	local params = RaycastParams.new()
 
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {character}
+	params.FilterType =
+		Enum.RaycastFilterType.Exclude
+
+	params.FilterDescendantsInstances =
+		{character}
+
 	params.IgnoreWater = true
 
-	-- Check all four horizontal directions.
-	-- This makes wall detection work even when the player
-	-- isn't directly facing the wall.
 	local directions = {
+
 		root.CFrame.LookVector,
+
 		-root.CFrame.LookVector,
+
 		root.CFrame.RightVector,
+
 		-root.CFrame.RightVector
 	}
 
@@ -1116,11 +1043,12 @@ local function getWallHit(character,root)
 
 	for _,direction in ipairs(directions) do
 
-		local result = workspace:Raycast(
-			root.Position,
-			direction * WALL_DISTANCE,
-			params
-		)
+		local result =
+			workspace:Raycast(
+				root.Position,
+				direction * WALL_DISTANCE,
+				params
+			)
 
 		if result and result.Instance then
 
@@ -1139,44 +1067,77 @@ local function getWallHit(character,root)
 	return closest
 end
 
+--==================================================
+-- WALL MOVEMENT
+--==================================================
+
 local function getWallMovement(humanoid,normal)
 
-	local camera = workspace.CurrentCamera
+	local camera =
+		workspace.CurrentCamera
 
 	if not camera then
 		return Vector3.zero
 	end
 
-	local move = humanoid.MoveDirection
+	local move =
+		humanoid.MoveDirection
 
 	if move.Magnitude < 0.05 then
 		return Vector3.zero
 	end
 
-	-- Get the player's forward/backward and left/right input
-	-- from the camera.
-	local cameraForward = camera.CFrame.LookVector
-	local cameraRight = camera.CFrame.RightVector
+	-- Read the player's movement relative to the camera.
+	local cameraForward =
+		camera.CFrame.LookVector
 
-	local forwardAmount = move:Dot(cameraForward)
-	local rightAmount = move:Dot(cameraRight)
+	local cameraRight =
+		camera.CFrame.RightVector
 
-	-- Vertical direction on the wall.
-	local wallUp = Vector3.yAxis
+	local forwardAmount =
+		move:Dot(cameraForward)
 
-	-- Horizontal direction across the wall.
-	local wallRight = wallUp:Cross(normal)
+	local rightAmount =
+		move:Dot(cameraRight)
+
+	-- The wall's normal becomes its "up" direction.
+	local wallUp =
+		normal.Unit
+
+	-- Camera right projected onto the wall.
+	local wallRight =
+		cameraRight -
+		wallUp * cameraRight:Dot(wallUp)
 
 	if wallRight.Magnitude < 0.05 then
+
+		wallRight =
+			Vector3.yAxis:Cross(
+				wallUp
+			)
+
+		if wallRight.Magnitude < 0.05 then
+			return Vector3.zero
+		end
+	end
+
+	wallRight =
+		wallRight.Unit
+
+	-- Camera forward projected onto the wall.
+	local wallForward =
+		cameraForward -
+		wallUp * cameraForward:Dot(wallUp)
+
+	if wallForward.Magnitude < 0.05 then
 		return Vector3.zero
 	end
 
-	wallRight = wallRight.Unit
+	wallForward =
+		wallForward.Unit
 
-	-- W/S becomes movement up/down the wall.
-	-- A/D becomes movement left/right across the wall.
 	local movement =
-		wallUp * forwardAmount +
+		wallForward * forwardAmount +
 		wallRight * rightAmount
 
 	if movement.Magnitude < 0.05 then
@@ -1186,17 +1147,24 @@ local function getWallMovement(humanoid,normal)
 	return movement.Unit
 end
 
+--==================================================
+-- UPDATE WALL WALK
+--==================================================
+
 local function updateWallWalk(dt)
 
 	if not getWallWalk() then
 
 		if wallAttached then
 
-			local humanoid = getHumanoid()
+			local humanoid =
+				getHumanoid()
 
 			if humanoid then
 				humanoid.AutoRotate = true
 			end
+
+			stopWallCamera()
 		end
 
 		wallNormal = nil
@@ -1206,32 +1174,53 @@ local function updateWallWalk(dt)
 		return
 	end
 
-	local character = getCharacter()
-	local humanoid = getHumanoid()
-	local root = getRoot()
+	local character =
+		getCharacter()
 
-	if not character or not humanoid or not root then
+	local humanoid =
+		getHumanoid()
+
+	local root =
+		getRoot()
+
+	if not character
+		or not humanoid
+		or not root then
+
 		return
 	end
 
-	local hit = getWallHit(character,root)
-
-	-- If already attached, check the current wall directly.
-	if wallAttached and wallNormal then
-
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = {character}
-		params.IgnoreWater = true
-
-		local currentWall = workspace:Raycast(
-			root.Position,
-			-wallNormal * WALL_DISTANCE,
-			params
+	local hit =
+		getWallHit(
+			character,
+			root
 		)
 
+	-- Keep checking the wall we are attached to.
+	if wallAttached and wallNormal then
+
+		local params =
+			RaycastParams.new()
+
+		params.FilterType =
+			Enum.RaycastFilterType.Exclude
+
+		params.FilterDescendantsInstances =
+			{character}
+
+		params.IgnoreWater = true
+
+		local currentWall =
+			workspace:Raycast(
+				root.Position,
+				-wallNormal * WALL_DISTANCE,
+				params
+			)
+
 		if currentWall
-			and math.abs(currentWall.Normal.Y) < 0.65 then
+			and math.abs(
+				currentWall.Normal.Y
+			) < 0.65 then
 
 			hit = currentWall
 		end
@@ -1239,52 +1228,101 @@ local function updateWallWalk(dt)
 
 	if hit then
 
-		local targetNormal = hit.Normal
+		local targetNormal =
+			hit.Normal.Unit
 
 		if not wallNormal then
-			wallNormal = targetNormal
-		else
-
-			local alpha = wallAlpha(12,dt)
 
 			wallNormal =
+				targetNormal
+
+		else
+
+			local alpha =
+				wallAlpha(12,dt)
+
+			local blended =
 				wallNormal:Lerp(
 					targetNormal,
 					alpha
-				).Unit
+				)
+
+			if blended.Magnitude > 0.01 then
+				wallNormal =
+					blended.Unit
+			end
 		end
 
-		wallPart = hit.Instance
+		wallPart =
+			hit.Instance
 
-		local normal = wallNormal
+		local normal =
+			wallNormal.Unit
 
+		-- The wall normal becomes the player's UP direction.
+		-- This is the important part that makes the wall
+		-- behave like a floor.
+		local wallUp =
+			normal
+
+		-- Get movement along the wall.
 		local movement =
 			getWallMovement(
 				humanoid,
 				normal
 			)
 
-		-- Character orientation:
-		-- front points into the wall,
-		-- top stays aligned with the wall's vertical direction.
-		local forward = -normal
-		local up = Vector3.yAxis
+		-- Choose the character's forward direction.
+		local forward
 
-		local right = forward:Cross(up)
+		if movement.Magnitude > 0.05 then
+
+			forward =
+				movement
+
+		else
+
+			local projectedLook =
+				root.CFrame.LookVector -
+				wallUp *
+				root.CFrame.LookVector:Dot(wallUp)
+
+			if projectedLook.Magnitude > 0.05 then
+
+				forward =
+					projectedLook.Unit
+
+			else
+
+				forward =
+					Vector3.new(
+						0,
+						0,
+						-1
+					)
+			end
+		end
+
+		-- Build a CFrame where:
+		-- UpVector = wall normal
+		-- LookVector = movement direction
+		local right =
+			forward:Cross(wallUp)
 
 		if right.Magnitude > 0.05 then
 
-			right = right.Unit
+			right =
+				right.Unit
 
-			local correctedUp =
-				right:Cross(forward).Unit
+			local correctedForward =
+				wallUp:Cross(right).Unit
 
 			local targetCFrame =
 				CFrame.fromMatrix(
 					root.Position,
 					right,
-					correctedUp,
-					-forward
+					wallUp,
+					-correctedForward
 				)
 
 			root.CFrame =
@@ -1299,16 +1337,21 @@ local function updateWallWalk(dt)
 
 		humanoid.AutoRotate = false
 
-		-- Stick to wall even while standing still.
-		local stickVelocity =
-			-normal * WALL_STICK
+		-- Remove normal-world gravity's downward velocity
+		-- and keep the player attached to the wall.
+		local tangentVelocity =
+			movement *
+			humanoid.WalkSpeed *
+			WALL_SPEED
 
-		if movement.Magnitude > 0 then
+		local stickVelocity =
+			-normal *
+			WALL_STICK
+
+		if movement.Magnitude > 0.05 then
 
 			root.AssemblyLinearVelocity =
-				movement *
-				humanoid.WalkSpeed *
-				WALL_SPEED +
+				tangentVelocity +
 				stickVelocity
 
 		else
@@ -1317,20 +1360,26 @@ local function updateWallWalk(dt)
 				stickVelocity
 		end
 
-		wallAttached = true
+		if not wallAttached then
+
+			wallAttached = true
+
+			startWallCamera(root)
+		end
 
 	else
 
-		-- No wall detected.
-		-- Give normal character control back.
 		if wallAttached then
 
 			humanoid.AutoRotate = true
 
+			stopWallCamera()
+
+			-- Keep the player's normal horizontal velocity
+			-- when leaving the wall.
 			local velocity =
 				root.AssemblyLinearVelocity
 
-			-- Remove the wall-sticking velocity.
 			root.AssemblyLinearVelocity =
 				Vector3.new(
 					velocity.X,
@@ -1349,26 +1398,344 @@ local function updateWallWalk(dt)
 end
 
 --==================================================
+-- INFINITE / WALL JUMP
+--==================================================
+
+UserInputService.JumpRequest:Connect(function()
+
+	local humanoid =
+		getHumanoid()
+
+	local root =
+		getRoot()
+
+	if not humanoid then
+		return
+	end
+
+	-- When on a wall, jumping pushes the player away
+	-- from the wall, as if the wall were the floor.
+	if wallAttached
+		and wallNormal
+		and root then
+
+		local normal =
+			wallNormal.Unit
+
+		local velocity =
+			root.AssemblyLinearVelocity
+
+		local tangentVelocity =
+			velocity -
+			normal *
+			velocity:Dot(normal)
+
+		root.AssemblyLinearVelocity =
+			tangentVelocity +
+			normal *
+			getJumpPower()
+
+		humanoid:ChangeState(
+			Enum.HumanoidStateType.Jumping
+		)
+
+		return
+	end
+
+	if getInfiniteJump() then
+
+		humanoid:ChangeState(
+			Enum.HumanoidStateType.Jumping
+		)
+	end
+end)
+
+--==================================================
+-- ESP
+--==================================================
+
+local function getHealthColor(humanoid)
+
+	local health =
+		humanoid.Health
+
+	local maxHealth =
+		humanoid.MaxHealth
+
+	if health <= 0 then
+		return PURPLE
+	end
+
+	local percent =
+		health / maxHealth
+
+	if percent > 0.50 then
+		return Color3.fromRGB(
+			60,255,100
+		)
+	elseif percent > 0.25 then
+		return YELLOW
+	else
+		return RED
+	end
+end
+
+local function removeESP(target)
+
+	if espObjects[target] then
+
+		for _,object in ipairs(
+			espObjects[target]
+		) do
+
+			if typeof(object) ==
+				"RBXScriptConnection" then
+
+				object:Disconnect()
+
+			elseif object then
+
+				object:Destroy()
+			end
+		end
+
+		espObjects[target] = nil
+	end
+end
+
+local function addESP(target)
+
+	if target == player then
+		return
+	end
+
+	removeESP(target)
+
+	local character =
+		target.Character
+
+	if not character then
+		return
+	end
+
+	local humanoid =
+		character:FindFirstChildOfClass(
+			"Humanoid"
+		)
+
+	local root =
+		character:FindFirstChild(
+			"HumanoidRootPart"
+		)
+
+	if not humanoid or not root then
+		return
+	end
+
+	local highlight =
+		Instance.new("Highlight")
+
+	highlight.FillTransparency =
+		0.45
+
+	highlight.OutlineTransparency =
+		0
+
+	highlight.OutlineColor =
+		RED
+
+	highlight.Parent =
+		character
+
+	local billboard =
+		Instance.new("BillboardGui")
+
+	billboard.Size =
+		UDim2.new(
+			0,180,
+			0,35
+		)
+
+	billboard.StudsOffset =
+		Vector3.new(
+			0,3,0
+		)
+
+	billboard.AlwaysOnTop =
+		true
+
+	billboard.Parent =
+		root
+
+	local label =
+		Instance.new("TextLabel")
+
+	label.Size =
+		UDim2.new(
+			1,0,
+			1,0
+		)
+
+	label.BackgroundTransparency =
+		1
+
+	label.Font =
+		Enum.Font.GothamBold
+
+	label.TextSize =
+		12
+
+	label.TextStrokeTransparency =
+		0.5
+
+	label.Parent =
+		billboard
+
+	local function update()
+
+		if humanoid.Parent == nil then
+			return
+		end
+
+		local healthColor =
+			getHealthColor(
+				humanoid
+			)
+
+		highlight.FillColor =
+			healthColor
+
+		label.TextColor3 =
+			healthColor
+
+		label.Text =
+			string.format(
+				"%s [%d/%d]",
+				target.Name,
+				math.max(
+					0,
+					math.floor(
+						humanoid.Health
+					)
+				),
+				math.floor(
+					humanoid.MaxHealth
+				)
+			)
+	end
+
+	local connection =
+		RunService.Heartbeat:Connect(
+			update
+		)
+
+	espObjects[target] = {
+		highlight,
+		billboard,
+		connection
+	}
+
+	update()
+end
+
+local function updateESP()
+
+	if not getESP() then
+
+		for target in pairs(
+			espObjects
+		) do
+
+			removeESP(target)
+		end
+
+		return
+	end
+
+	for _,target in ipairs(
+		Players:GetPlayers()
+	) do
+
+		if target ~= player
+			and not espObjects[target] then
+
+			addESP(target)
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(
+	function(target)
+
+		target.CharacterAdded:Connect(
+			function()
+
+				task.wait(0.5)
+
+				if getESP() then
+					addESP(target)
+				end
+			end
+		)
+	end
+)
+
+Players.PlayerRemoving:Connect(
+	function(target)
+		removeESP(target)
+	end
+)
+
+for _,target in ipairs(
+	Players:GetPlayers()
+) do
+
+	if target ~= player then
+
+		target.CharacterAdded:Connect(
+			function()
+
+				task.wait(0.5)
+
+				if getESP() then
+					addESP(target)
+				end
+			end
+		)
+	end
+end
+
+--==================================================
 -- MAIN LOOP
 --==================================================
 
 RunService.Heartbeat:Connect(function(dt)
 
-	local character = getCharacter()
-	local humanoid = getHumanoid()
-	local root = getRoot()
+	local character =
+		getCharacter()
+
+	local humanoid =
+		getHumanoid()
+
+	local root =
+		getRoot()
 
 	-- WALK SPEED / JUMP POWER
 	if humanoid then
 
-		humanoid.WalkSpeed = getWalkSpeed()
-		humanoid.JumpPower = getJumpPower()
+		humanoid.WalkSpeed =
+			getWalkSpeed()
+
+		humanoid.JumpPower =
+			getJumpPower()
 	end
 
 	-- NOCLIP
 	if character and getNoclip() then
 
-		for _,part in ipairs(character:GetDescendants()) do
+		for _,part in ipairs(
+			character:GetDescendants()
+		) do
 
 			if part:IsA("BasePart") then
 				part.CanCollide = false
@@ -1377,12 +1744,19 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 
 	-- FLY
-	if getFly() and humanoid and root then
+	if getFly()
+		and humanoid
+		and root
+		and not wallAttached then
 
-		humanoid.PlatformStand = true
+		humanoid.PlatformStand =
+			true
 
-		local move = humanoid.MoveDirection
-		local camera = workspace.CurrentCamera
+		local move =
+			humanoid.MoveDirection
+
+		local camera =
+			workspace.CurrentCamera
 
 		if move.Magnitude > 0 then
 
@@ -1398,39 +1772,56 @@ RunService.Heartbeat:Connect(function(dt)
 
 	else
 
-		if humanoid and humanoid.PlatformStand then
-			humanoid.PlatformStand = false
+		if humanoid
+			and humanoid.PlatformStand
+			and not getFly() then
+
+			humanoid.PlatformStand =
+				false
 		end
 	end
 
 	-- WALK FLING
-	if getWalkFling() and root then
+	if getWalkFling()
+		and root
+		and not wallAttached then
 
 		root.AssemblyAngularVelocity =
-			Vector3.new(0,100000,0)
+			Vector3.new(
+				0,
+				100000,
+				0
+			)
 
-		for _,target in ipairs(Players:GetPlayers()) do
+		for _,target in ipairs(
+			Players:GetPlayers()
+		) do
 
 			if target ~= player then
 
 				local targetRoot =
 					target.Character
-					and target.Character:FindFirstChild(
+					and target.Character:
+					FindFirstChild(
 						"HumanoidRootPart"
 					)
 
 				if targetRoot then
 
 					local distance =
-						(targetRoot.Position -
-						root.Position).Magnitude
+						(
+							targetRoot.Position -
+							root.Position
+						).Magnitude
 
 					if distance <= 4 then
 
 						local last =
-							flingCooldown[target] or 0
+							flingCooldown[target]
+							or 0
 
-						if os.clock() - last >= 0.5 then
+						if os.clock() - last
+							>= 0.5 then
 
 							local difference =
 								targetRoot.Position -
@@ -1443,7 +1834,11 @@ RunService.Heartbeat:Connect(function(dt)
 
 								targetRoot.AssemblyLinearVelocity =
 									direction * 100 +
-									Vector3.new(0,60,0)
+									Vector3.new(
+										0,
+										60,
+										0
+									)
 
 								flingCooldown[target] =
 									os.clock()
@@ -1456,7 +1851,8 @@ RunService.Heartbeat:Connect(function(dt)
 
 	else
 
-		if root then
+		if root and not wallAttached then
+
 			root.AssemblyAngularVelocity =
 				Vector3.zero
 		end
@@ -1465,12 +1861,16 @@ RunService.Heartbeat:Connect(function(dt)
 	-- ANTI FLING
 	if getAntiFling() then
 
-		for _,target in ipairs(Players:GetPlayers()) do
+		for _,target in ipairs(
+			Players:GetPlayers()
+		) do
 
-			if target ~= player and target.Character then
+			if target ~= player
+				and target.Character then
 
 				for _,part in ipairs(
-					target.Character:GetDescendants()
+					target.Character:
+					GetDescendants()
 				) do
 
 					if part:IsA("BasePart") then
@@ -1483,7 +1883,7 @@ RunService.Heartbeat:Connect(function(dt)
 
 	updateESP()
 
-	-- FIXED WALL WALK
+	-- WALL WALK
 	updateWallWalk(dt)
 end)
 
@@ -1491,26 +1891,50 @@ end)
 -- RESPAWN
 --==================================================
 
-player.CharacterAdded:Connect(function(character)
+player.CharacterAdded:Connect(
+	function(character)
 
-	local humanoid =
-		character:WaitForChild("Humanoid")
+		-- Reset wall camera first.
+		if wallAttached then
+			stopWallCamera()
+		end
 
-	task.wait(0.2)
+		wallNormal = nil
+		wallPart = nil
+		wallAttached = false
 
-	humanoid.WalkSpeed =
-		getWalkSpeed()
+		local humanoid =
+			character:WaitForChild(
+				"Humanoid"
+			)
 
-	humanoid.JumpPower =
-		getJumpPower()
+		task.wait(0.2)
 
-	wallNormal = nil
-	wallPart = nil
-	wallAttached = false
+		humanoid.WalkSpeed =
+			getWalkSpeed()
 
-	if getESP() then
+		humanoid.JumpPower =
+			getJumpPower()
 
-		task.wait(0.5)
-		updateESP()
+		humanoid.AutoRotate =
+			true
+
+		local camera =
+			workspace.CurrentCamera
+
+		if camera then
+
+			camera.CameraType =
+				Enum.CameraType.Custom
+
+			camera.CameraSubject =
+				humanoid
+		end
+
+		if getESP() then
+
+			task.wait(0.5)
+			updateESP()
+		end
 	end
-end)
+)
