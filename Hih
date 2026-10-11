@@ -515,7 +515,11 @@ local wallButton,getWallWalk,setWallWalk =
 		"Walk on Walls",
 		false
 	)
+local hitboxButton, getHitbox, setHitbox =
+    createToggle(miscPage, "Hitbox", false)
 
+local hitboxSlider, getHitboxSize, setHitboxSize =
+    createSlider(miscPage, "Hitbox Size", 1, 50, 8)
 --==================================================
 -- ANTI
 --==================================================
